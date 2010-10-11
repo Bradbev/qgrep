@@ -1,0 +1,101 @@
+* Rethinking Instagrep
+ - Compression and decompression are the high performance parts
+ - Quick startup.  Either server or C
+ - Max out the CPUs, this probably means quickest decompress time.  Still likely to be IO bound.
+** Dataflow
+ - Single stream of compressed data from file descriptor -> file desc?
+ - Decompress wide (pgzip, etc) -> file desc?
+ - Single stream of uncompressed data -> per file work queue
+ - Grep workers pull streams from queue  -> per file work queue
+   - (shm_open)  Will need to abstract for Win32
+     
+* Build DB & compress
+  - Can be driven by non-C.
+  - Compress ought to be parallel, but not required
+    
+* GUI
+ - Required for average users
+ - Required to setup the project
+   
+* Project datafile
+ - Project name
+ - basepaths & regex matchers
+     
+* File watching
+ - A list of "cold" files that gets appended to on change.  Grep app reads that & greps those files first.
+ - Service process, can be in non-C.
+
+* Utility timings
+- 255Mb of data
+- gzip = 17.2s - gunzip  = 6.18
+- pigs = 10.7  - unpigz = 4.7
+- zip = 17     - unzip = 5.8
+- pigz is the best on a tar file  
+time ~/development/c/pigz-2.1.6/unpigz -c raw-data.tar.gz | grep -a f | wc -l
+ 2631428
+real	0m1.845s
+user	0m2.773s
+sys	0m0.431s
+time gunzip -c raw-data.tar.gz | grep -a f | wc -l
+ 2631428
+
+real	0m2.690s
+user	0m3.490s
+sys	0m0.298s
+  
+* Libarchive
+Appears to be more suitable than libtar
+
+* How to build.
+- TDD, where performance is recorded & asserted
+
+* Tasks
+** Search engine
+- Command line tool that behaves like grep.
+- igrep project [options] expression
+  igrep project -filenames expression
+- Responsible for actually converting a compressed stream to grep hits
+- Provides a library to access the functionality
+1. Build out project structure
+   - unit test (cppunit)
+   - libarchive
+   - RE2
+   - setup basic hello world testcase
+2. libarchive data from a tgz (time tests)
+3. RE2 match filter (timings)
+4. Stream functionality (look at libarchive)
+5. Single threaded extract/grep (timings)
+6. RE2 matching as a thread task.
+
+  
+** Glue Code
+- Provides the GUI, file selection, file watching, archive updating etc
+1. Filename walking code
+2. Project setup
+3. Create archive from project
+4. File monitoring
+   
+** New file/stale handling
+Server needs to:
+ 1) full scan of project & compare timestamps to archive
+ 2) create project.stalefiles
+    fullname for new or touched files
+    -fullname for deletes
+ 3) generate new tmpfile & swap with project.stalefiles
+ 4) Generate new archive as tmpfile & swap in, at the same time refreshing project.stalefiles.
+
+Searcher
+ - opens project.tgz & project.stalefiles.
+ - reads stalefiles into a map, deletes to their own map
+ - when archive name is stale, match in that
+ - when archive name is gone, skip it
+   
+- May want staleness options - ie, only hit stalefiles at the very end, or hit them at the start.
+   
+** Command line control
+- projects: list projects
+- regen project
+- search project grep-expr : searches
+- files project
+- start-service
+- stop-service
