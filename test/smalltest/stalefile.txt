@@ -1,0 +1,3 @@
+stalefile1 This file is on the disk, you should see this
+stalefile2 This line is for real
+stalefile3 so is this line for real

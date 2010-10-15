@@ -1,0 +1,3 @@
+incache1 this file is in the cache
+incache2 second line
+incacde3 third line

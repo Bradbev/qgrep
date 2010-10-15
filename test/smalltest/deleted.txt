@@ -1,0 +1,2 @@
+deleted1 This file will exist in the cache, and on disk, but be marked as deleted
+deleted2 the second line
