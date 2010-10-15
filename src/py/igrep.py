@@ -1,10 +1,9 @@
-#!/usr/bin/python
-
 ### Command line handling for instagrep
 import sys
 import engine
 
 ############################################
+### Remove this chunk, do proper project handling
 import os
 def dirtest(f):
     return os.path.abspath("../data/dirtest/" + f)
@@ -18,7 +17,6 @@ engine.Project("test2",
              [dirtest("dirb")], [".*"]
              )
 ############################################
-
 
 gCommands = {};
 

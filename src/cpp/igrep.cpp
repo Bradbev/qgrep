@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
 
 static void grepFormatHit(void* context, const char* filename, unsigned int lineNumber, const char* lineStart, const char* lineEnd)
 {
@@ -20,13 +21,16 @@ void usage()
     printf("Usage is:\n"
 	   "\tigrep [options] <project-name> <search-pattern>\n"
 	   "\tOptions: \n"
-	   "\t-i : Case insensitive \n");
+	   "\t-i : Case insensitive \n"
+	   "\t-f : Search filenames\n"
+	);
     exit(1);
 };
 
 int main(int argc, char** argv)
 {
-    bool caseInsensitive = false;
+    bool caseSensitive = true;
+    bool searchFilenames = false;
     int c;
     
     if (argc <= 2)
@@ -34,13 +38,12 @@ int main(int argc, char** argv)
     
     opterr = 0;
      
-    while ((c = getopt (argc, argv, "i")) != -1)
+    while ((c = getopt (argc, argv, "if")) != -1)
     {
 	switch (c)
 	{
-	case 'i':
-	    caseInsensitive = true;
-	    break;
+	case 'i': caseSensitive = false; break;
+	case 'f': searchFilenames = true; break;
 	default:
 	    usage();
 	}
@@ -50,12 +53,15 @@ int main(int argc, char** argv)
     const char* pattern = argv[optind+1];
     
     GrepParams params;
+    memset(&params, 0, sizeof(params));
     params.sourceArchiveName = archiveName;
     params.callbackFunction = grepFormatHit;
     params.searchPattern = pattern;
     params.streamBlockSize = 1 * 1024 * 1024;
     params.streamBlockCount = 10;
-    params.caseInsensitive = caseInsensitive;
+    params.caseSensitive = caseSensitive;
+    params.searchFilenames = searchFilenames;
+    params.callbackContext = (void*)searchFilenames;
     
     ExecuteSearch(&params);
 

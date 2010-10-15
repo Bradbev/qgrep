@@ -8,16 +8,16 @@ LIBS = $(LIBDIR) -larchive -lre2
 IGREP_SRCS = archive.cpp stream.cpp
 IGREP_OBJS = $(IGREP_SRCS:.cpp=.o) yarn.o
 
-CFLAGS = -O3 -Wall -Werror -fPIC
+CFLAGS = -O0 -g -Wall -Werror -fPIC
 CPPFLAGS = $(CFLAGS)
 
 all: libigrep.dylib igrep
 
-libigrep.dylib: $(IGREP_OBJS)
+libigrep.dylib: $(IGREP_OBJS) *.h
 	@echo $(IGREP_OBJS)
 	g++ -dynamiclib -o libigrep.dylib $(IGREP_OBJS) $(LIBS)
 
-igrep: libigrep.dylib igrep.o
+igrep: libigrep.dylib igrep.o *.h
 	g++ -o igrep igrep.o libigrep.dylib $(CFLAGS)
 
 clean:

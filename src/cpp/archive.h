@@ -11,8 +11,10 @@ struct GrepParams
     unsigned int streamBlockCount;
     const char* sourceArchiveName;
     matchHitCallback callbackFunction;
+    void* callbackContext;
     const char* searchPattern;
-    unsigned int caseInsensitive;
+    unsigned int caseSensitive;
+    unsigned int searchFilenames;
 };
 void ExecuteSearch(GrepParams* param);
     

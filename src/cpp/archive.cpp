@@ -61,6 +61,7 @@ struct RegexMatchState
     unsigned int currentLineCount;
 };
 
+// Ick, this leaks like a sieve :(
 char* CopyString(const char* s)
 {
     int len = strlen(s);
@@ -83,7 +84,21 @@ struct ConsumerThreadContext
 {
     Stream* dataStream;
     matchHitCallback callbackFunction;
+    void* callbackContext;
     RE2* pattern;
+};
+
+template <class T, class K>
+bool SetContains(T& set, K& key)
+{
+    return set.count(key) > 0;
+}
+
+std::string GetBaseFromFilename(const char* filename)
+{
+    std::string s(filename);
+    int lastDelimiter = s.find_last_of("/\\") + 1;
+    return s.substr(0,lastDelimiter);
 };
 
 void MatchInBlock(RegexMatchState* state, NamedDataBlock* block)
@@ -244,7 +259,7 @@ void grepThreadFn(void* rawContext)
     RegexMatchState state;
     while (running)
     {
-	InitMatchState(&state, pattern, callback, NULL);
+	InitMatchState(&state, pattern, callback, context->callbackContext);
 	count++;
 	unsigned int blockSize;
 	NamedDataBlock* block = (NamedDataBlock*)GetReadBlock(s, &blockSize);
@@ -346,7 +361,7 @@ void LargeFileFallback(struct archive* a, FILE* f, NamedDataBlock* alreadyReadDa
     BlockUntilStreamIsEmpty(s);
     // do match
     RegexMatchState state;
-    InitMatchState(&state, context->pattern, context->callbackFunction, NULL);
+    InitMatchState(&state, context->pattern, context->callbackFunction, context->callbackContext);
     MatchInBlock(&state, block);
     free(block);
 };
@@ -371,6 +386,7 @@ void LoadStaleSets(const char* filename)
 	}
 	fclose(f);
     }
+    /*
     printf("Stale files are \n");
     for (StringSet::iterator i = gStaleFiles.begin();
 	 i != gStaleFiles.end();
@@ -385,85 +401,153 @@ void LoadStaleSets(const char* filename)
     {
 	printf("%s\n", *i);
     }
+    */
+}
+
+void ExecuteContentSearch(Stream* dataStream, struct archive* cacheArchive, FILE* file, struct archive_entry* entry, const char* entryName, ConsumerThreadContext* context)
+{
+    /* Main search kernel */
+    unsigned int blockSize;
+    unsigned int readSize;
+    unsigned int readlen;
+    void* rawBlock = GetWriteBlock(dataStream, &blockSize);
+    NamedDataBlock* block = CreateNamedDataBlock(entryName, rawBlock, blockSize);
+    void* data = GetDataFromBlock(block, &readSize);
+    readlen = ReadDataFromFileOrArchive(cacheArchive, file, data, readSize);
+    SetUsedDataSize(block, readlen);
+    if (readlen == readSize)
+    {
+	LargeFileFallback(cacheArchive, file, block, context);
+	SetUsedDataSize(block, 0);
+    }
+    PutWriteBlock(dataStream);
+}
+
+FILE* OpenFile(std::string& baseDirectory, const char* filename)
+{
+    std::string trueName = baseDirectory;
+    trueName.append(filename);
+    //printf("Searching in %s\n", trueName.c_str());
+    FILE* file = fopen(trueName.c_str(), "rb");
+    return file;
 }
 
 void ExecuteSearch(GrepParams* param)
 {
-  struct archive *a;
-  FILE* f = NULL;
+  struct archive *cacheArchive;
+  FILE* file = NULL;
   struct archive_entry *entry;
   int r;
+  StringSet staleFilesThatHaveBeenSearched;
   
   LoadStaleSets(param->sourceArchiveName);
   
   ConsumerThreadContext* context = new ConsumerThreadContext();
-  Stream* s = CreateStream(param->streamBlockSize, param->streamBlockCount);
-  context->dataStream = s;
+  Stream* dataStream = CreateStream(param->streamBlockSize, param->streamBlockCount);
+  context->dataStream = dataStream;
   context->callbackFunction = param->callbackFunction;
-  context->pattern = new RE2(param->searchPattern);
+  context->callbackContext = param->callbackContext;
+  RE2::Options options;
+  options.set_case_sensitive(param->caseSensitive);
+  context->pattern = new RE2(param->searchPattern, options);
   
   thread* consumer = launch(grepThreadFn, context);
   
-  a = archive_read_new();
-  archive_read_support_compression_all(a);
-  archive_read_support_format_all(a);
-  r = archive_read_open_filename(a, param->sourceArchiveName, 10240); // Note 1
+  cacheArchive = archive_read_new();
+  archive_read_support_compression_all(cacheArchive);
+  archive_read_support_format_all(cacheArchive);
+  r = archive_read_open_filename(cacheArchive, param->sourceArchiveName, 10240); 
+  if (r != ARCHIVE_OK)
+    exit(1);
+  
+  std::string baseDirectory = GetBaseFromFilename(param->sourceArchiveName).c_str();
+  
+  while (archive_read_next_header(cacheArchive, &entry) == ARCHIVE_OK) {
+      const char* entryName = archive_entry_pathname(entry);
+      
+      // Don't return results from deleted files
+      if (SetContains(gDeletedFiles, entryName))
+      {
+	  archive_read_data_skip(cacheArchive); 
+	  continue;
+      }
+      
+      // Handle file name search
+      if (param->searchFilenames)
+      {
+	  if (RE2::PartialMatch(entryName, *(context->pattern)))
+	  {
+	      param->callbackFunction(param->callbackContext, entryName, 1, 0, 0);
+	      staleFilesThatHaveBeenSearched.insert(CopyString(entryName));
+	  }
+	  archive_read_data_skip(cacheArchive); 
+	  continue;
+      }
+      
+      /* Handle files that are stale in the cache */
+      if (SetContains(gStaleFiles, entryName))
+      {
+	  staleFilesThatHaveBeenSearched.insert(CopyString(entryName));
+	  file = OpenFile(baseDirectory, entryName);
+	  if (!file)
+	  {
+	      printf("[WARN] Unable to open %s, falling back to cache\n", entryName);
+	  }
+	  else
+	  {
+	      archive_read_data_skip(cacheArchive); 
+	  }
+      }
+      
+      ExecuteContentSearch(dataStream, cacheArchive, file, entry, entryName, context);
+      
+      if (file)
+      {
+	  fclose(file);
+	  file = NULL;
+      }
+  }
+  
+  // Handle added files
+  StringSet::iterator end = gStaleFiles.end();
+  for (StringSet::iterator i = gStaleFiles.begin(); i != end; ++i)
+  {
+      if (SetContains(staleFilesThatHaveBeenSearched, *i))
+	  continue;
+      
+      if (param->searchFilenames)
+      {
+	  if (RE2::PartialMatch(*i, *(context->pattern)))
+	  {
+	      param->callbackFunction(param->callbackContext, *i, 1, 0, 0);
+	  }
+	  continue;
+      }
+
+      file = OpenFile(baseDirectory, *i);
+      if (file)
+      {
+	  ExecuteContentSearch(dataStream, NULL, file, NULL, *i, context);
+	  fclose(file);
+	  file = NULL;
+      }
+  }
+
+  r = archive_read_finish(cacheArchive);  
   if (r != ARCHIVE_OK)
     exit(1);
   
   unsigned int blockSize;
-  unsigned int readSize;
-  unsigned int readlen;
-  while (archive_read_next_header(a, &entry) == ARCHIVE_OK) {
-      const char* entryName = archive_entry_pathname(entry);
-      // Don't return results from deleted files
-      if (gDeletedFiles.count(entryName) > 0)
-      {
-	  archive_read_data_skip(a); 
-	  continue;
-      }
-      
-      void* rawBlock = GetWriteBlock(s, &blockSize);
-      NamedDataBlock* block = CreateNamedDataBlock(entryName, rawBlock, blockSize);
-      //////
-      if (gStaleFiles.count(entryName) > 0)
-      {
-//	  printf("Searching in %s\n", entryName);
-	  f = fopen(entryName, "rb");
-	  archive_read_data_skip(a); 
-      }
-      
-      void* data = GetDataFromBlock(block, &readSize);
-      readlen = ReadDataFromFileOrArchive(a, f, data, readSize);
-      SetUsedDataSize(block, readlen);
-      if (readlen == readSize)
-      {
-	  LargeFileFallback(a, f, block, context);
-	  SetUsedDataSize(block, 0);
-      }
-      
-      if (f)
-      {
-	  fclose(f);
-	  f = NULL;
-      }
-      ///////
-      PutWriteBlock(s);
-  }
-  r = archive_read_finish(a);  // Note 3
-  if (r != ARCHIVE_OK)
-    exit(1);
-  
-  void* rawBlock = GetWriteBlock(s, &blockSize);
+  void* rawBlock = GetWriteBlock(dataStream, &blockSize);
   NamedDataBlock* endBlock = CreateNamedDataBlock(NULL, rawBlock, blockSize);
   SetUsedDataSize(endBlock, 0);
-  PutWriteBlock(s);
+  PutWriteBlock(dataStream);
   //printf("Waiting on join\n");
   join(consumer);
   
   delete context->pattern;
   delete context;
-  DestroyStream(s);
+  DestroyStream(dataStream);
   //printf("gFallback %d gFallbackExpands %d\n", gFallback, gFallbackExpands);
 }
 

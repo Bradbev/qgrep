@@ -8,7 +8,7 @@ void namedDataBlockTest();
 
 void test_CreateArchive()
 {
-    char *files[] = {
+    const char *files[] = {
 	"/Users/bradbeveridge/development/c/igrep/data/dirtest/dirA/aa.c",
 	"/Users/bradbeveridge/development/c/igrep/data/dirtest/dirA/aa.cpp",
 	"/Users/bradbeveridge/development/c/igrep/data/dirtest/dirA/sound_core.c",
@@ -18,7 +18,7 @@ void test_CreateArchive()
 	NULL
     };
     struct archive* a = CreateArchive("test.tgz");
-    for (char **f = files; *f; f++)
+    for (char **f = (char**)files; *f; f++)
     {
 	AddFileToArchive(a, *f);
     }
