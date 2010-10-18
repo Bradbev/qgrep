@@ -1,1 +1,6 @@
 data/
+*.o
+*.dylib
+src/cpp/igrep
+dist/
+test/cpptest
