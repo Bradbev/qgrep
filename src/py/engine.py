@@ -38,21 +38,27 @@ gBasePath = os.path.expanduser("~/");
 ############### Project creation
 def MakeArchiveName(name):
     return os.path.normpath(os.path.join(gBasePath,".igrep", name + ".tgz"))
-    
-def Project(name, *args):
-    global gProjects;
-    gProjects[name] = { "name" : name,
-                        "archivefile" : MakeArchiveName(name),
-                        "watchers" : [],
-                        "staleSet" : set(),
-                        "files" : map(pairToDescription, listToPairs(args)) }
+
+class Project:
+    def __init__(self, name, *args):
+        global gProjects
+        gProjects[name] = self
+        self.name = name
+        self.archivefile = MakeArchiveName(name)
+        self.watchers = []
+        self.staleSet = set()
+        self.files = map(pairToDescription, listToPairs(args))
+        
 def ProjectNames():
     for p in gProjects:
         yield p
         
 def ProjectExists(name):
     return name in gProjects
-    
+
+def GetProjectByName(name):
+    return gProjects.get(name, None)
+
 ############### Listing files    
 def SetExtend(s, l):
     for e in l:
@@ -63,7 +69,7 @@ def GetProjectFiles(name):
     if not project:
         return
     files = set();
-    for f in project["files"]:
+    for f in project.files:
         exprs = f["exprs"]
         for b in f["bases"]:
             SetExtend(files, walkDirectoryForFiles(b, exprs))
@@ -89,20 +95,21 @@ def GenerateProjectArchive(name):
     tmpname = tmpnam()
     archive = libigrep.CreateArchive(tmpname);
     for f in GetProjectFiles(name):
+        print(f)
         libigrep.AddFileToArchive(archive, f)
     libigrep.CloseArchive(archive)
-    TryAtomicRename(tmpname, project["archivefile"])
+    TryAtomicRename(tmpname, project.archivefile)
     
 ################## Project watching 
 def OutputStaleSet(project):    
     tmpname = tmpnam()
     with open(tmpname, "wb") as f:
-        f.writelines("\n".join(sorted(project["staleSet"])))
+        f.writelines("\n".join(sorted(project.staleSet)))
         f.write("\n")
-    TryAtomicRename(tmpname, project["archivefile"] + ".stalefiles")
+    TryAtomicRename(tmpname, project.archivefile + ".stalefiles")
 
 def FileChangedCallback(project, file, changeType):
-    staleSet = project["staleSet"]
+    staleSet = project.staleSet
     delname = "-" + file;
     if changeType == "deleted":
         if file in staleSet:
@@ -118,17 +125,17 @@ def StartWatchingProject(name):
     project = gProjects.get(name, None)
     if not project:
         return
-    for f in project["files"]:
+    for f in project.files:
         exprs = f["exprs"]
         for b in f["bases"]:
-            project["watchers"].append(filemon.MonitorDirectory(b, FileChangedCallback, project))
+            project.watchers.append(filemon.MonitorDirectory(b, FileChangedCallback, project))
                                        
 def StopWatchingProject(name):
     project = gProjects.get(name, None)
     if not project:
         return
-    for w in project["watchers"]:
+    for w in project.watchers:
         filemon.ForgetMonitor(w)
-    project["watchers"] = []
+    project.watchers = []
     
 ################ Commandline processing

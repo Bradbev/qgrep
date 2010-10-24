@@ -428,7 +428,10 @@ FILE* OpenFile(std::string& baseDirectory, const char* filename)
     std::string trueName = baseDirectory;
     trueName.append(filename);
     //printf("Searching in %s\n", trueName.c_str());
-    FILE* file = fopen(trueName.c_str(), "rb");
+    FILE* file = NULL;
+    file = fopen(trueName.c_str(), "rb");
+    if (!file)
+	file = fopen(filename, "rb");
     return file;
 }
 

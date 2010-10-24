@@ -1,4 +1,3 @@
-
 * Rethinking Instagrep
  - Compression and decompression are the high performance parts
  - Quick startup.  Either server or C
