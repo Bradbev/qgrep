@@ -4,3 +4,4 @@ data/
 src/cpp/igrep
 dist/
 test/cpptest
+*.pyc

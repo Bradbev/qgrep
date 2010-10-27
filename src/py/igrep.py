@@ -89,6 +89,9 @@ def startservice(*ignored):
         
 def stopservice(*ignored):
     print "stopservice"
+    
+def projectinfo(name=None, *ignored):
+    print "projectinfo"
         
 AddCommand(help, "help", "Provides further help for commands", "")
 AddCommand(listprojects, "projects", "Lists all known projects", "longhelp")
@@ -96,7 +99,8 @@ AddCommand(regen, "regen", "<project> regenerates the database for <project>", "
 AddCommand(files, "files", "<project> <regex> filters the filenames in <project> through <regex>", "longhelp")
 AddCommand(search, "search", "<project> <options> <regex> searches for <regex> in the given project", "longhelp")
 AddCommand(startservice, "start-service", "Launches ", "longhelp")
-AddCommand(stopservice, "stops-ervice", "<project> <regex> searches for <regex> in the given project", "longhelp")
+AddCommand(stopservice, "stops-service", "<project> <regex> searches for <regex> in the given project", "longhelp")
+AddCommand(projectinfo, "info", "<project> displays information about <project>", "longhelp")
 
 def main(argv):                         
     if argv:
