@@ -58,7 +58,12 @@ def slow_MonitorDirectory(directory, callback, context):
     return handle
 
 def slow_ForgetMonitor(handle):
-    del gHandles[handle]
+    if handle in gHandles:
+        try:
+            gHandles[handle]["timer"].cancel()
+        except:
+            pass
+        del gHandles[handle]
     
 
 MonitorDirectory = slow_MonitorDirectory

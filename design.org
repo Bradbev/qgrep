@@ -99,3 +99,11 @@ Searcher
 - files project
 - start-service
 - stop-service
+  
+* Plan [0/1]
+  - [ ] Build a use-case project & use daily
+  - [ ] hook grep commands to use-case project
+  - [ ] setup win dev environment (local with parallels?)
+  - [ ] port current code to win32
+  - [ ] begin use at work	
+  - [ ] web server	

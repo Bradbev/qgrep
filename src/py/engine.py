@@ -18,19 +18,14 @@ def searchMultiplePatterns(string, patterns):
             return True;
     return False;
 
-def walkDirectoryForFiles(rootdir, regexs):
-    patterns = [ re.compile(r) for r in regexs];
+def walkDirectoryForFiles(rootdir, regexs, ignoredRegexs):
+    patterns = [ re.compile(r) for r in regexs]
+    ignored =  [ re.compile(r) for r in ignoredRegexs]
     for root, subFolders, files in os.walk(rootdir):
         for file in files:
             fullname = os.path.join(root,file)
-            if searchMultiplePatterns(fullname, patterns):
+            if searchMultiplePatterns(fullname, patterns) and not searchMultiplePatterns(fullname, ignored):
                 yield fullname
-
-def pairToDescription(p):
-    return { "bases" : p[0], "exprs" : p[1] };
-
-def listToPairs(l): 
-    return zip(l[::2], l[1::2])
 
 gProjects = {};
 gBasePath = os.path.expanduser("~/");
@@ -38,6 +33,21 @@ gBasePath = os.path.expanduser("~/");
 ############### Project creation
 def MakeArchiveName(name):
     return os.path.normpath(os.path.join(gBasePath,".igrep", name + ".tgz"))
+
+class TrackOrIgnore:
+    def __init__(self, track, path, regexs):
+        self.track = track
+        self.path = path
+        self.regexs = regexs
+        
+    def __str__(self):
+        return str([self.track, self.path, self.regexs])
+        
+def track(path, *regexs):
+    return TrackOrIgnore(True, path, regexs)
+
+def ignore(*regexs):
+    return TrackOrIgnore(False, "", regexs)
 
 class Project:
     def __init__(self, name, *args):
@@ -47,7 +57,12 @@ class Project:
         self.archivefile = MakeArchiveName(name)
         self.watchers = []
         self.staleSet = set()
-        self.files = map(pairToDescription, listToPairs(args))
+        self.trackedFiles = filter(lambda x: x.track is True, args)
+        s = set()
+        for i in filter(lambda x: x.track is False, args):
+            for r in i.regexs:
+                s.add(r)
+        self.ignoredRegexs = s
         
 def ProjectNames():
     for p in gProjects:
@@ -59,6 +74,17 @@ def ProjectExists(name):
 def GetProjectByName(name):
     return gProjects.get(name, None)
 
+def FileIsInProject(project, filename):
+    ignoredPatterns = [re.compile(r) for r in project.ignoredRegexs]
+    if searchMultiplePatterns(filename, ignoredPatterns):
+        return False
+    for f in project.trackedFiles:
+        if filename.startswith(f.path):
+            patterns = [re.compile(r) for r in f.regexs]
+            if searchMultiplePatterns(filename, patterns):
+                    return True
+    return False
+
 ############### Listing files    
 def SetExtend(s, l):
     for e in l:
@@ -69,10 +95,8 @@ def GetProjectFiles(name):
     if not project:
         return
     files = set();
-    for f in project.files:
-        exprs = f["exprs"]
-        for b in f["bases"]:
-            SetExtend(files, walkDirectoryForFiles(b, exprs))
+    for f in project.trackedFiles:
+        SetExtend(files, walkDirectoryForFiles(f.path, f.regexs, project.ignoredRegexs))
     return sorted(files)
 
 ################ Generating the archive
@@ -94,10 +118,12 @@ def GenerateProjectArchive(name):
         return
     tmpname = tmpnam()
     archive = libigrep.CreateArchive(tmpname);
+    fileCount = 0
     for f in GetProjectFiles(name):
-        print(f)
+        fileCount = fileCount + 1
         libigrep.AddFileToArchive(archive, f)
     libigrep.CloseArchive(archive)
+    print("Added %d files to archive" % fileCount)
     TryAtomicRename(tmpname, project.archivefile)
     
 ################## Project watching 
@@ -107,8 +133,9 @@ def OutputStaleSet(project):
         f.writelines("\n".join(sorted(project.staleSet)))
         f.write("\n")
     TryAtomicRename(tmpname, project.archivefile + ".stalefiles")
-
+    
 def FileChangedCallback(project, file, changeType):
+    print(file, changeType, FileIsInProject(project, file))
     staleSet = project.staleSet
     delname = "-" + file;
     if changeType == "deleted":
@@ -118,22 +145,15 @@ def FileChangedCallback(project, file, changeType):
     else:
         if delname in staleSet:
             staleSet.remove(delname)
-        staleSet.add(file)
+        if FileIsInProject(project, file):
+            staleSet.add(file)
     OutputStaleSet(project)
         
-def StartWatchingProject(name):
-    project = gProjects.get(name, None)
-    if not project:
-        return
-    for f in project.files:
-        exprs = f["exprs"]
-        for b in f["bases"]:
-            project.watchers.append(filemon.MonitorDirectory(b, FileChangedCallback, project))
+def StartWatchingProject(project):
+    for files in project.trackedFiles:
+        project.watchers.append(filemon.MonitorDirectory(files.path, FileChangedCallback, project))
                                        
-def StopWatchingProject(name):
-    project = gProjects.get(name, None)
-    if not project:
-        return
+def StopWatchingProject(project):
     for w in project.watchers:
         filemon.ForgetMonitor(w)
     project.watchers = []

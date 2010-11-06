@@ -1,21 +1,11 @@
 ### Command line handling for instagrep
-import sys
+import sys, os
 import engine
 
 ############################################
 ### Remove this chunk, do proper project handling
-import os
-def dirtest(f):
-    return os.path.abspath("../../data/dirtest/" + f)
-
-engine.Project("test",
-             [dirtest("")], [".*\.c"],
-             [dirtest("dirb")], [".*"]
-             )
-engine.Project("test2",
-             [dirtest("")], [".*\.c"],
-             [dirtest("dirb")], [".*"]
-             )
+from engine import Project, track, ignore
+execfile(os.path.expanduser("~/.igrep/projects.py"))
 ############################################
 
 def RunExternalSearch(*args):
@@ -84,14 +74,24 @@ def search(name=None, *optionsAndRegex):
     command = options + (project.archivefile,) + regex;
     RunExternalSearch(*command)
         
-def startservice(*ignored):
-    print "startservice"
+def startservice(name=None, *ignored):
+    project = ProjectExistsOrExit(name)
+    engine.StartWatchingProject(project)
+    raw_input("Monitoring files, press Enter to stop")
+    engine.StopWatchingProject(project)
         
 def stopservice(*ignored):
     print "stopservice"
     
 def projectinfo(name=None, *ignored):
-    print "projectinfo"
+    project = ProjectExistsOrExit(name)
+    print(project.archivefile)
+    print("Tracking")
+    for tf in project.trackedFiles:
+        print(tf)
+    print("Ignoring")
+    for ignore in project.ignoredFiles:
+        print(ignore)
         
 AddCommand(help, "help", "Provides further help for commands", "")
 AddCommand(listprojects, "projects", "Lists all known projects", "longhelp")
