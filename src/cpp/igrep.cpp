@@ -27,7 +27,7 @@ void usage()
     exit(1);
 };
 
-int main(int argc, char** argv)
+int main(int argc, char* argv[])
 {
     bool caseSensitive = true;
     bool searchFilenames = false;
