@@ -5,11 +5,12 @@
 #include <stdio.h>
 #include <archive.h>
 #include <archive_entry.h>
-#include <re2/re2.h>
+#include "re2/re2.h"
 #include <algorithm>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <string.h>
 #include <set>
 #include <string>
 
@@ -461,7 +462,11 @@ void ExecuteSearch(GrepParams* param)
   archive_read_support_format_all(cacheArchive);
   r = archive_read_open_filename(cacheArchive, param->sourceArchiveName, 10240); 
   if (r != ARCHIVE_OK)
-    exit(1);
+  {
+      printf("FATAL: %s", archive_error_string(cacheArchive));
+      exit(1);
+  }
+  printf("ok\n");
   
   std::string baseDirectory = GetBaseFromFilename(param->sourceArchiveName).c_str();
   

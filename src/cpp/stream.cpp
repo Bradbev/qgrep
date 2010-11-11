@@ -35,7 +35,7 @@ struct Stream
 	for (unsigned int i = 0; i < numBlocks; i++)
 	{
 	    blocks[i] = new char[size];
-	    bzero(blocks[i], size);
+	    memset(blocks[i], 0, size);
 	}
 	numberOfBlocks = numBlocks;
 	blockSize = size;

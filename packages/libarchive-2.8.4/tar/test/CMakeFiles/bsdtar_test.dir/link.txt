@@ -1,0 +1,3 @@
+"C:\Program Files\CMake 2.8\bin\cmake.exe" -E remove -f CMakeFiles\bsdtar_test.dir/objects.a
+c:\MinGW\bin\ar.exe cr CMakeFiles\bsdtar_test.dir/objects.a @CMakeFiles\bsdtar_test.dir\objects1.rsp
+c:\MinGW\bin\gcc.exe     -Wl,--whole-archive CMakeFiles\bsdtar_test.dir/objects.a -Wl,--no-whole-archive  -o ..\..\bin\bsdtar_test.exe -Wl,--out-implib,libbsdtar_test.dll.a -Wl,--major-image-version,0,--minor-image-version,0  -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32 
