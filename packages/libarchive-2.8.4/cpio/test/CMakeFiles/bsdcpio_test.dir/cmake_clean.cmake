@@ -1,0 +1,42 @@
+FILE(REMOVE_RECURSE
+  "CMakeFiles/bsdcpio_test.dir/__/cmdline.c.obj"
+  "CMakeFiles/bsdcpio_test.dir/__/__/libarchive_fe/err.c.obj"
+  "CMakeFiles/bsdcpio_test.dir/__/__/libarchive_fe/pathmatch.c.obj"
+  "CMakeFiles/bsdcpio_test.dir/main.c.obj"
+  "CMakeFiles/bsdcpio_test.dir/test_0.c.obj"
+  "CMakeFiles/bsdcpio_test.dir/test_basic.c.obj"
+  "CMakeFiles/bsdcpio_test.dir/test_cmdline.c.obj"
+  "CMakeFiles/bsdcpio_test.dir/test_format_newc.c.obj"
+  "CMakeFiles/bsdcpio_test.dir/test_gcpio_compat.c.obj"
+  "CMakeFiles/bsdcpio_test.dir/test_option_B_upper.c.obj"
+  "CMakeFiles/bsdcpio_test.dir/test_option_C_upper.c.obj"
+  "CMakeFiles/bsdcpio_test.dir/test_option_J_upper.c.obj"
+  "CMakeFiles/bsdcpio_test.dir/test_option_L_upper.c.obj"
+  "CMakeFiles/bsdcpio_test.dir/test_option_Z_upper.c.obj"
+  "CMakeFiles/bsdcpio_test.dir/test_option_a.c.obj"
+  "CMakeFiles/bsdcpio_test.dir/test_option_c.c.obj"
+  "CMakeFiles/bsdcpio_test.dir/test_option_d.c.obj"
+  "CMakeFiles/bsdcpio_test.dir/test_option_f.c.obj"
+  "CMakeFiles/bsdcpio_test.dir/test_option_help.c.obj"
+  "CMakeFiles/bsdcpio_test.dir/test_option_l.c.obj"
+  "CMakeFiles/bsdcpio_test.dir/test_option_lzma.c.obj"
+  "CMakeFiles/bsdcpio_test.dir/test_option_m.c.obj"
+  "CMakeFiles/bsdcpio_test.dir/test_option_t.c.obj"
+  "CMakeFiles/bsdcpio_test.dir/test_option_u.c.obj"
+  "CMakeFiles/bsdcpio_test.dir/test_option_version.c.obj"
+  "CMakeFiles/bsdcpio_test.dir/test_option_y.c.obj"
+  "CMakeFiles/bsdcpio_test.dir/test_option_z.c.obj"
+  "CMakeFiles/bsdcpio_test.dir/test_owner_parse.c.obj"
+  "CMakeFiles/bsdcpio_test.dir/test_passthrough_dotdot.c.obj"
+  "CMakeFiles/bsdcpio_test.dir/test_passthrough_reverse.c.obj"
+  "CMakeFiles/bsdcpio_test.dir/test_pathmatch.c.obj"
+  "../../bin/bsdcpio_test.pdb"
+  "../../bin/bsdcpio_test.exe"
+  "../../bin/bsdcpio_test.exe.manifest"
+  "libbsdcpio_test.dll.a"
+)
+
+# Per-language clean rules from dependency scanning.
+FOREACH(lang C)
+  INCLUDE(CMakeFiles/bsdcpio_test.dir/cmake_clean_${lang}.cmake OPTIONAL)
+ENDFOREACH(lang)
