@@ -1,6 +1,7 @@
 data/
 *.o
 *.dylib
+*.dll
 src/cpp/igrep
 dist/
 test/cpptest
