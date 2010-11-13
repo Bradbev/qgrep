@@ -1,3 +1,0 @@
-"C:\Program Files\CMake 2.8\bin\cmake.exe" -E remove -f CMakeFiles\bsdcpio.dir/objects.a
-c:\MinGW\bin\ar.exe cr CMakeFiles\bsdcpio.dir/objects.a @CMakeFiles\bsdcpio.dir\objects1.rsp
-c:\MinGW\bin\gcc.exe     -Wl,--whole-archive CMakeFiles\bsdcpio.dir/objects.a -Wl,--no-whole-archive  -o ..\bin\bsdcpio.exe -Wl,--out-implib,libbsdcpio.dll.a -Wl,--major-image-version,0,--minor-image-version,0  ..\libarchive\libarchive.dll.a -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32 
