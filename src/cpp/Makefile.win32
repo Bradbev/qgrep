@@ -1,7 +1,6 @@
 BASE = ../../packages
 
-ARCHIVE = $(BASE)/libarchive-2.8.4
-INCLUDES = -I $(ARCHIVE)/libarchive/ -I $(BASE)/re2/
+INCLUDES = -I $(BASE)/libarchive_win32/include -I $(BASE)/re2_win32/
 LIBDIR = $(BASE)/libs_w32
 LIBS = $(LIBDIR)/libarchive.dll.a $(LIBDIR)/libre2.so $(LIBDIR)/pthreadGC2.dll
 
