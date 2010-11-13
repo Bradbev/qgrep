@@ -26,6 +26,4 @@ clean:
 .PHONY: clean
 
 dist: clean all
-	cp igrep libigrep.dylib ../../dist/
-
 .PHONY: dist

@@ -1,31 +1,7 @@
-BASE = ../../../packages
+ifeq ($(shell uname -s), Darwin)
+include Makefile.osx
+endif
 
-ARCHIVE = $(BASE)/libarchive-2.8.4
-INCLUDES = -I $(ARCHIVE)/libarchive/ 
-LIBDIR = -L$(ARCHIVE)/.libs/
-LIBS = $(LIBDIR) -larchive -lre2
-
-IGREP_SRCS = archive.cpp stream.cpp
-IGREP_OBJS = $(IGREP_SRCS:.cpp=.o) yarn.o
-
-CFLAGS = -O0 -g -Wall -Werror -fPIC
-CPPFLAGS = $(CFLAGS)
-
-all: libigrep.dylib igrep
-
-libigrep.dylib: $(IGREP_OBJS) *.h
-	@echo $(IGREP_OBJS)
-	g++ -dynamiclib -o libigrep.dylib $(IGREP_OBJS) $(LIBS)
-
-igrep: libigrep.dylib igrep.o *.h
-	g++ -o igrep igrep.o libigrep.dylib $(CFLAGS)
-
-clean:
-	rm *.o *.dylib
-
-.PHONY: clean
-
-dist: clean all
-	cp igrep libigrep.dylib ../../dist/
-
-.PHONY: dist
+ifeq ($(shell uname -s), MINGW32_NT-5.1)
+include Makefile.win32
+endif
