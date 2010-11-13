@@ -1,8 +1,13 @@
-import sys, os, re, warnings
+import sys, os, re, warnings, platform
 from ctypes import *
 import filemon
 
-libigrep = CDLL("libigrep.dylib");
+libigrep = None
+if platform.system() == 'Windows':
+    libigrep = CDLL("libigrep.dll")
+else:    
+    libigrep = CDLL("libigrep.dylib");
+    
 libigrep.CreateArchive.restype = c_void_p
 libigrep.AddFileToArchive.argtypes = [c_void_p, c_char_p]
 libigrep.CloseArchive.argtypes = [c_void_p]

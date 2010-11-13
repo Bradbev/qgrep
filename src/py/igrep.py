@@ -1,17 +1,33 @@
 ### Command line handling for instagrep
-import sys, os
+import sys, os, platform
 import engine
 
 ############################################
 ### Remove this chunk, do proper project handling
 from engine import Project, track, ignore
 execfile(os.path.expanduser("~/.igrep/projects.py"))
-############################################
 
-def RunExternalSearch(*args):
+############################################
+### Need to do proper exe finding
+def RunExternalSearch_OSX(*args):
     cmd = "../cpp/igrep " + " ".join(map(str, args))
     print(cmd)
     os.system(cmd)
+    
+def RunExternalSearch_Win32(*args):
+    cmd = r"..\cpp\igrep.exe " + " ".join(map(str, args))
+    print(cmd)
+    os.system(cmd)
+    
+RunExternalSearch = None
+    
+if platform.system() == 'Windows':
+    RunExternalSearch = RunExternalSearch_Win32
+else:
+    RunExternalSearch = RunExternalSearch_OSX
+    
+    
+############################################
 
 gCommands = {};
 
@@ -64,14 +80,14 @@ def regen(name=None, *ignored):
         
 def files(name=None, *args):
     project = ProjectExistsOrExit(name)
-    RunExternalSearch("-if", project.archivefile, *args)
+    RunExternalSearch("-if", '"%s"' % project.archivefile, *args)
         
 def search(name=None, *optionsAndRegex):
     project = ProjectExistsOrExit(name)
     regex = optionsAndRegex[-1:]
     options = optionsAndRegex[:-1]
     archivefile = [project.archivefile]
-    command = options + (project.archivefile,) + regex;
+    command = options + ('"%s"' % project.archivefile,) + regex;
     RunExternalSearch(*command)
         
 def startservice(name=None, *ignored):
