@@ -11,6 +11,7 @@ else:
 libigrep.CreateArchive.restype = c_void_p
 libigrep.AddFileToArchive.argtypes = [c_void_p, c_char_p]
 libigrep.CloseArchive.argtypes = [c_void_p]
+libigrep.ExecuteSimpleSearch.argtypes = [c_char_p, c_char_p, c_char_p]
 
 def tmpnam():
     with warnings.catch_warnings():

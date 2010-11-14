@@ -236,17 +236,6 @@ void namedDataBlockTest()
     }
 }
 
-static void grepFormatHit(void* context, const char* filename, unsigned int lineNumber, const char* lineStart, const char* lineEnd)
-{
-    printf("%s:%d:", filename, lineNumber);
-    while (lineStart < lineEnd)
-    {
-	putchar(*lineStart);
-	lineStart++;
-    }
-    putchar('\n');
-}
-
 void grepThreadFn(void* rawContext)
 {
     ConsumerThreadContext* context = (ConsumerThreadContext*)rawContext;
@@ -466,7 +455,6 @@ void ExecuteSearch(GrepParams* param)
       printf("FATAL: %s", archive_error_string(cacheArchive));
       exit(1);
   }
-  printf("ok\n");
   
   std::string baseDirectory = GetBaseFromFilename(param->sourceArchiveName).c_str();
   
@@ -601,13 +589,95 @@ void CloseArchive(struct archive* a)
     archive_write_finish(a);
 }
 
-void test_ReadFileNames(const char* archiveName)
+
+/////////////////////////////////////////////////////////////////////////
+// Simple searching
+static char gReplaceSlashesTo = 0;
+static char gReplaceSlashesFrom = 0;
+
+static void printLinePart(const char* lineStart, const char* lineEnd)
 {
+    while (lineStart < lineEnd)
+    {
+	putchar(*lineStart);
+	lineStart++;
+    }
+}
+
+static void ReplaceChars(std::string& s, char from, char to)
+{
+    for (size_t i = 0; i < s.size(); i++)
+    {
+	if (s[i] == from)
+	    s[i] = to;
+    }
+}
+
+static void grepFormatHit(void* context, const char* filename, unsigned int lineNumber, const char* lineStart, const char* lineEnd)
+{
+    if (gReplaceSlashesTo)
+    {
+	std::string s(filename);
+	ReplaceChars(s, gReplaceSlashesFrom, gReplaceSlashesTo);
+	printf("%s:%d:", s.c_str(), lineNumber);
+    }
+    else
+    {
+	printf("%s:%d:", filename, lineNumber);
+    }
+    printLinePart(lineStart, lineEnd);
+    putchar('\n');
+}
+
+static void visualStudioHitFormat(void* context, const char* filename, unsigned int lineNumber, const char* lineStart, const char* lineEnd)
+{
+    if (gReplaceSlashesTo)
+    {
+	std::string s(filename);
+	ReplaceChars(s, gReplaceSlashesFrom, gReplaceSlashesTo);
+	printf("%s (%d):", s.c_str(), lineNumber);
+    }
+    else
+    {
+	printf("%s (%d):", filename, lineNumber);
+    }
+    printLinePart(lineStart, lineEnd);
+    putchar('\n');
+}
+
+void ExecuteSimpleSearch(const char* archiveName, const char* options, const char* regex)
+{
+    bool caseSensitive = true;
+    bool searchFilenames = false;
+    bool visualStudioHit = false;
+    
+    while (*options)
+    {
+	switch (*options)
+	{
+	case 'i': caseSensitive = false; break;
+	case 'f': searchFilenames = true; break;
+	case 'v': visualStudioHit = true; break;
+	case '\\': gReplaceSlashesTo = '\\'; gReplaceSlashesFrom = '/'; break;
+	case '/': gReplaceSlashesTo = '/';   gReplaceSlashesFrom = '\\'; break;
+	default:
+	    break;
+	}
+	options++;
+    }
+     
     GrepParams params;
-    params.streamBlockCount = BLOCK_COUNT;
-    params.streamBlockSize = BLOCK_SIZE;
-    params.callbackFunction = grepFormatHit;
+    memset(&params, 0, sizeof(params));
     params.sourceArchiveName = archiveName;
-    params.searchPattern = "foo";
+    params.callbackFunction = grepFormatHit;
+    if (visualStudioHit)
+	params.callbackFunction = visualStudioHitFormat;
+    params.searchPattern = regex;
+    params.streamBlockSize = 1 * 1024 * 1024;
+    params.streamBlockCount = 10;
+    params.caseSensitive = caseSensitive;
+    params.searchFilenames = searchFilenames;
+    params.callbackContext = (void*)searchFilenames;
+    
     ExecuteSearch(&params);
 }
