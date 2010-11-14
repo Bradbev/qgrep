@@ -18,14 +18,14 @@ struct GrepParams
 };
 void ExecuteSearch(GrepParams* param);
     
+void ExecuteSimpleSearch(const char* archiveName, const char* options, const char* regex);
+    
 // Creation functions    
 struct archive;
 struct archive* CreateArchive(const char* archiveName);
 void AddFileToArchive(struct archive* a, const char* filename);
 void CloseArchive(struct archive* a);
 
-void dllTest(const char* foo);
-    
 }
 
 

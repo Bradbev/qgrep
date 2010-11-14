@@ -8,26 +8,9 @@ from engine import Project, track, ignore
 execfile(os.path.expanduser("~/.igrep/projects.py"))
 
 ############################################
-### Need to do proper exe finding
-def RunExternalSearch_OSX(*args):
-    cmd = "igrepll " + " ".join(map(str, args))
-    print(cmd)
-    os.system(cmd)
-    
-def RunExternalSearch_Win32(*args):
-    cmd = "grepll.exe " + " ".join(map(str, args))
-    print(cmd)
-    os.system(cmd)
-    
-RunExternalSearch = None
-    
-if platform.system() == 'Windows':
-    RunExternalSearch = RunExternalSearch_Win32
-else:
-    RunExternalSearch = RunExternalSearch_OSX
-    
-    
-############################################
+
+def RunExternalSearch(filename, options, regex):
+    engine.libigrep.ExecuteSimpleSearch(filename, options, regex)
 
 gCommands = {};
 
@@ -80,15 +63,20 @@ def regen(name=None, *ignored):
         
 def files(name=None, *args):
     project = ProjectExistsOrExit(name)
-    RunExternalSearch("-if", '"%s"' % project.archivefile, *args)
+    RunExternalSearch(project.archivefile, "if", *args)
         
 def search(name=None, *optionsAndRegex):
     project = ProjectExistsOrExit(name)
-    regex = optionsAndRegex[-1:]
-    options = optionsAndRegex[:-1]
-    archivefile = [project.archivefile]
-    command = options + ('"%s"' % project.archivefile,) + regex;
-    RunExternalSearch(*command)
+    l = len(optionsAndRegex)
+    if l > 2 or l == 0:
+        usage()
+        return
+    
+    regex = optionsAndRegex[-1]
+    options = ""
+    if l > 1:
+        options = optionsAndRegex[0]
+    RunExternalSearch(project.archivefile, options, regex);
         
 def startservice(name=None, *ignored):
     project = ProjectExistsOrExit(name)
@@ -113,7 +101,7 @@ AddCommand(help, "help", "Provides further help for commands", "")
 AddCommand(listprojects, "projects", "Lists all known projects", "longhelp")
 AddCommand(regen, "regen", "<project> regenerates the database for <project>", "longhelp")
 AddCommand(files, "files", "<project> <regex> filters the filenames in <project> through <regex>", "longhelp")
-AddCommand(search, "search", "<project> <options> <regex> searches for <regex> in the given project", "longhelp")
+AddCommand(search, "search", "<project> [options] <regex> searches for <regex> in the given project", "longhelp")
 AddCommand(startservice, "start-service", "Launches ", "longhelp")
 AddCommand(stopservice, "stops-service", "<project> <regex> searches for <regex> in the given project", "longhelp")
 AddCommand(projectinfo, "info", "<project> displays information about <project>", "longhelp")
