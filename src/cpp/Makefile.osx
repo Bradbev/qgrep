@@ -11,14 +11,14 @@ IGREP_OBJS = $(IGREP_SRCS:.cpp=.o) yarn.o
 CFLAGS = -O0 -g -Wall -Werror -fPIC
 CPPFLAGS = $(CFLAGS)
 
-all: libigrep.dylib igrep
+all: libigrep.dylib igrepll
 
 libigrep.dylib: $(IGREP_OBJS) *.h
 	@echo $(IGREP_OBJS)
 	g++ -dynamiclib -o libigrep.dylib $(IGREP_OBJS) $(LIBS)
 
-igrep: libigrep.dylib igrep.o *.h
-	g++ -o igrep igrep.o libigrep.dylib $(CFLAGS)
+igrepll: libigrep.dylib igrep.o *.h
+	g++ -o igrepll igrep.o libigrep.dylib $(CFLAGS)
 
 clean:
 	rm *.o *.dylib
