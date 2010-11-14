@@ -10,12 +10,12 @@ execfile(os.path.expanduser("~/.igrep/projects.py"))
 ############################################
 ### Need to do proper exe finding
 def RunExternalSearch_OSX(*args):
-    cmd = "../cpp/igrep " + " ".join(map(str, args))
+    cmd = "igrepll " + " ".join(map(str, args))
     print(cmd)
     os.system(cmd)
     
 def RunExternalSearch_Win32(*args):
-    cmd = r"..\cpp\igrep.exe " + " ".join(map(str, args))
+    cmd = "grepll.exe " + " ".join(map(str, args))
     print(cmd)
     os.system(cmd)
     
