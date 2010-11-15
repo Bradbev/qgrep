@@ -106,6 +106,13 @@ def GetProjectFiles(name):
     return sorted(files)
 
 ################ Generating the archive
+def TryDelete(name):
+    #print ("Deleting " + name)
+    try:
+        os.remove(name)
+    except OSError:
+        pass
+
 def TryAtomicRename(old, new):
     #print (old + " -> " + new)
     try:
@@ -117,6 +124,9 @@ def TryAtomicRename(old, new):
             pass
         else:
             os.rename(old, new)
+            
+def GetStalefilename(project):
+    return project.archivefile + ".stalefiles"
 
 def GenerateProjectArchive(name):
     project = gProjects.get(name, None)
@@ -131,6 +141,7 @@ def GenerateProjectArchive(name):
     libigrep.CloseArchive(archive)
     print("Added %d files to archive" % fileCount)
     TryAtomicRename(tmpname, project.archivefile)
+    TryDelete(GetStalefilename(project))
     
 ################## Project watching 
 def OutputStaleSet(project):    
@@ -138,7 +149,7 @@ def OutputStaleSet(project):
     with open(tmpname, "wb") as f:
         f.writelines("\n".join(sorted(project.staleSet)))
         f.write("\n")
-    TryAtomicRename(tmpname, project.archivefile + ".stalefiles")
+    TryAtomicRename(tmpname, GetStalefilename(project))
     
 def FileChangedCallback(project, file, changeType):
     print(file, changeType, FileIsInProject(project, file))

@@ -55,11 +55,11 @@ def listprojects(*ignored):
     for n in engine.ProjectNames():
         print("\t" + n)
     
-def regen(name=None, *ignored):
+def build(name=None, *ignored):
     ProjectExistsOrExit(name)
-    print ("Regenerating " + name + ", may take some time...")
+    print ("Building " + name + ", may take some time...")
     engine.GenerateProjectArchive(name)
-    print ("Done regenerating");
+    print ("Done building");
         
 def files(name=None, *args):
     project = ProjectExistsOrExit(name)
@@ -99,9 +99,9 @@ def projectinfo(name=None, *ignored):
         
 AddCommand(help, "help", "Provides further help for commands", "")
 AddCommand(listprojects, "projects", "Lists all known projects", "longhelp")
-AddCommand(regen, "regen", "<project> regenerates the database for <project>", "longhelp")
+AddCommand(build, "build", "<project> regenerates the database for <project>", "longhelp")
 AddCommand(files, "files", "<project> <regex> filters the filenames in <project> through <regex>", "longhelp")
-AddCommand(search, "search", "<project> [options] <regex> searches for <regex> in the given project", "longhelp")
+AddCommand(search, "search", "<project> [iV/\\] <regex> searches for <regex> in the given project", "longhelp")
 AddCommand(startservice, "start-service", "Launches ", "longhelp")
 AddCommand(stopservice, "stops-service", "<project> <regex> searches for <regex> in the given project", "longhelp")
 AddCommand(projectinfo, "info", "<project> displays information about <project>", "longhelp")

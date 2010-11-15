@@ -21,33 +21,6 @@
  - Project name
  - basepaths & regex matchers
      
-* File watching
- - A list of "cold" files that gets appended to on change.  Grep app reads that & greps those files first.
- - Service process, can be in non-C.
-
-* Utility timings
-- 255Mb of data
-- gzip = 17.2s - gunzip  = 6.18
-- pigs = 10.7  - unpigz = 4.7
-- zip = 17     - unzip = 5.8
-- pigz is the best on a tar file  
-time ~/development/c/pigz-2.1.6/unpigz -c raw-data.tar.gz | grep -a f | wc -l
- 2631428
-real	0m1.845s
-user	0m2.773s
-sys	0m0.431s
-time gunzip -c raw-data.tar.gz | grep -a f | wc -l
- 2631428
-
-real	0m2.690s
-user	0m3.490s
-sys	0m0.298s
-  
-* Libarchive
-Appears to be more suitable than libtar
-
-* How to build.
-- TDD, where performance is recorded & asserted
 
 * Tasks
 ** Search engine
@@ -108,3 +81,29 @@ Searcher
   - [ ] port python code to win32
   - [ ] begin use at work	
   - [ ] web server	
+	
+
+* Documentation & Design
+igrep is a cross platform text searching utility.  The application uses basic platform 
+independant calls where possible, and relies on POSIX style support elsewhere.  For example,
+the Windows version relies on MINGW and POSIX libraries that have been ported to Win32.
+The app is split into two parts, Python and C++.  The C++ part is compiled into a dynamic 
+library, any code that is performance critical is written in C/C++.  Python is used as a 
+glue language, all project management and command line handling, etc are coded here.  
+igrep gets its speed from the realization that hard drives and file systems are the main
+bottle neck when searching code, instead of searching hundreds of Mb of text over thousands
+of files, igrep simple decompresses a single well compressed file.  Search speed is almost 
+entirely bound by how quickly decompression can happen.  I currently use gzip, but may want 
+to tune.
+
+** Search
+Two threads are used when searching.  The main thread decompresses source files and places whole
+files into a thread-safe queue.  A second thread dequeues the uncompressed text and tests the 
+block for the input expression.  The regex should be run on the entire file as one block as it 
+allows for fast early rejection of the file.  If the regex matches in the file, then the file
+must be divided into lines & the regex run on a per-line basis.
+This scheme will only utilize two threads, there are other possible ways to arrange for more threads,
+but all are awkward.  The best solution would be for the decompress and regex matching to internally
+use more threads.
+libarchive is used for compression/decompression
+RE2 is used for regular expression matching
