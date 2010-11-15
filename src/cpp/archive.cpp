@@ -657,7 +657,7 @@ void ExecuteSimpleSearch(const char* archiveName, const char* options, const cha
 	{
 	case 'i': caseSensitive = false; break;
 	case 'f': searchFilenames = true; break;
-	case 'v': visualStudioHit = true; break;
+	case 'V': visualStudioHit = true; break;
 	case '\\': gReplaceSlashesTo = '\\'; gReplaceSlashesFrom = '/'; break;
 	case '/': gReplaceSlashesTo = '/';   gReplaceSlashesFrom = '\\'; break;
 	default:

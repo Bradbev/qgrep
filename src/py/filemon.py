@@ -48,7 +48,7 @@ def slow_MonitorDirectory(directory, callback, context):
     monitorInfo["callback"] = callback
     monitorInfo["context"] = context
     monitorInfo["fileset"] = slow_GetFileset(directory)
-    monitorInfo["timeout"] = 5
+    monitorInfo["timeout"] = 60
     t = threading.Timer(monitorInfo["timeout"], slow_TimerPoll, [handle])
     monitorInfo["timer"] = t
     monitorInfo["dir"] = directory
