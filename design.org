@@ -73,12 +73,12 @@ Searcher
 - start-service
 - stop-service
   
-* Plan [4/6]
+* Plan [5/7]
   - [X] Build a use-case project & use daily
   - [X] hook grep commands to use-case project
   - [X] setup win dev environment (local with parallels?)
   - [X] port current code to win32 (C)
-  - [ ] port python code to win32
+  - [X] port python code to win32
   - [ ] begin use at work	
   - [ ] web server	
 	
