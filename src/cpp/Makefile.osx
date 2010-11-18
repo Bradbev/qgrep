@@ -14,7 +14,6 @@ CPPFLAGS = $(CFLAGS)
 all: libigrep.dylib igrepll
 
 libigrep.dylib: $(IGREP_OBJS) *.h
-	@echo $(IGREP_OBJS)
 	g++ -dynamiclib -o libigrep.dylib $(IGREP_OBJS) $(LIBS)
 
 igrepll: libigrep.dylib igrep.o *.h
