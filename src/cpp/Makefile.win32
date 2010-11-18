@@ -11,13 +11,13 @@ CFLAGS = -O0 -g -Wall -Werror $(INCLUDES)
 CPPFLAGS = $(CFLAGS) 
 CC = gcc
 
-all: libigrep.dll igrep
+all: libigrep.dll igrepll
 
 libigrep.dll: $(IGREP_OBJS) *.h
 	g++ -shared -o libigrep.dll $(IGREP_OBJS) $(LIBS)
 
-igrep: igrep.o *.h libigrep.dll
-	g++ -o igrep igrep.o libigrep.dll $(CFLAGS) $(LIBS)
+igrepll: igrep.o *.h libigrep.dll
+	g++ -o igrepll igrep.o libigrep.dll $(CFLAGS) $(LIBS)
 
 clean:
 	rm -f *.o *.dll *.exe
@@ -25,4 +25,9 @@ clean:
 .PHONY: clean
 
 dist: clean all
+	cp $(LIBS) $(DIST_DIR)
+	strip $(DIST_DIR)/*.dll
+	strip $(DIST_DIR)/*.so
+	strip $(DIST_DIR)/*.a
+
 .PHONY: dist

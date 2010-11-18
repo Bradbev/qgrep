@@ -10,6 +10,7 @@ GREP_LIB = libigrep.dll
 GREP_EXE = igrepll.exe
 endif
 
+export BASE_DIR = $(PWD)
 export DIST_DIR = $(PWD)/dist/$(PLATFORM)
 
 dist:
