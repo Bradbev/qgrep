@@ -1,14 +1,16 @@
 BASE = ../../../packages
 
 ARCHIVE = $(BASE)/libarchive-2.8.4
-INCLUDES = -I $(ARCHIVE)/libarchive/ 
+INCLUDES = -I$(ARCHIVE)/libarchive/ -I../simplefilewatcher/include/
 LIBDIR = -L$(ARCHIVE)/.libs/
 LIBS = $(LIBDIR) -larchive -lre2
 
-IGREP_SRCS = archive.cpp stream.cpp
+WATCHER_FILES = ../simplefilewatcher/source/FileWatcher.cpp ../simplefilewatcher/source/FileWatcherOSX.cpp
+
+IGREP_SRCS = archive.cpp stream.cpp filewatcher.cpp $(WATCHER_FILES)
 IGREP_OBJS = $(IGREP_SRCS:.cpp=.o) yarn.o
 
-CFLAGS = -O0 -g -Wall -Werror -fPIC
+CFLAGS = -O0 -g -Wall -Werror -fPIC $(INCLUDES)
 CPPFLAGS = $(CFLAGS)
 
 all: libigrep.dylib igrepll

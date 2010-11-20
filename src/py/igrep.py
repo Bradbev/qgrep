@@ -81,7 +81,7 @@ def search(name=None, *optionsAndRegex):
 def startservice(name=None, *ignored):
     project = ProjectExistsOrExit(name)
     engine.StartWatchingProject(project)
-    raw_input("Monitoring files, press Enter to stop")
+    raw_input("Monitoring files, press Enter to stop\n")
     engine.StopWatchingProject(project)
         
 def stopservice(*ignored):
@@ -102,8 +102,8 @@ AddCommand(listprojects, "projects", "Lists all known projects", "longhelp")
 AddCommand(build, "build", "<project> regenerates the database for <project>", "longhelp")
 AddCommand(files, "files", "<project> <regex> filters the filenames in <project> through <regex>", "longhelp")
 AddCommand(search, "search", "<project> [iV/\\] <regex> searches for <regex> in the given project", "longhelp")
-AddCommand(startservice, "start-service", "Launches ", "longhelp")
-AddCommand(stopservice, "stops-service", "<project> <regex> searches for <regex> in the given project", "longhelp")
+AddCommand(startservice, "start-service", "<project> Launches ", "longhelp")
+AddCommand(stopservice, "stops-service", "", "longhelp")
 AddCommand(projectinfo, "info", "<project> displays information about <project>", "longhelp")
 
 def main(argv):                         
