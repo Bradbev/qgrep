@@ -1,0 +1,17 @@
+K 25
+svn:wc:ra_dav:version-url
+V 35
+/svn/!svn/ver/15/trunk/build/vs2005
+END
+SimpleDemo.vcproj
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/svn/!svn/ver/15/trunk/build/vs2005/SimpleDemo.vcproj
+END
+SimpleFileWatcher.sln
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/svn/!svn/ver/15/trunk/build/vs2005/SimpleFileWatcher.sln
+END
