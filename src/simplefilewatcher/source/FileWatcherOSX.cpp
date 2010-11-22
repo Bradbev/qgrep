@@ -293,11 +293,11 @@ namespace FW
 					EntryStruct* entry = 0;
 					if((entry = (EntryStruct*)event.udata) != 0)
 					{
-						//fprintf(stderr, "File: %s -- ", (char*)entry->mFilename);
+						fprintf(stderr, "File: %s -- ", (char*)entry->mFilename);
 						
 						if(event.fflags & NOTE_DELETE)
 						{
-							//fprintf(stderr, "File deleted\n");
+							fprintf(stderr, "File deleted\n");
 							//watch->handleAction(entry->mFilename, Action::Delete);
 							watch->removeFile(entry->mFilename);
 						}
@@ -315,7 +315,7 @@ namespace FW
 					}
 					else
 					{
-						//fprintf(stderr, "Dir: %s -- rescanning\n", watch->mDirName.c_str());
+						fprintf(stderr, "Dir: %s -- rescanning\n", watch->mDirName.c_str());
 						watch->rescan();
 					}
 				}
