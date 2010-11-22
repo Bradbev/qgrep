@@ -1,58 +1,14 @@
-import threading, os, platform
+import threading, os, platform, time
 from ctypes import *
 
+MonitorDirectory = None
+ForgetMonitor = None
+
 #######################################
-libigrep = None
+gUseNativeMethod = False
 if platform.system() == 'Windows':
-    libigrep = CDLL("libigrep.dll")
-else:    
-    libigrep = CDLL("libigrep.dylib");
-    
-WatchCallbackType = CFUNCTYPE(None, c_int, c_char_p, c_char_p, c_int)
-libigrep.FileWatch_AddWatch.restypes = c_int
-libigrep.FileWatch_AddWatch.argtypes = [c_char_p, WatchCallbackType]
-libigrep.FileWatch_RemoveWatch.argtypes = [c_int]
-libigrep.FileWatch_Update.argtypes = []
-
-gCallbacksForPython = {}
-gActionNames = { 1 : "new", 2 : "deleted", 4 : "modified" }
-gNativeTimer = None
-
-class NativeCallback:
-    def __init__(self, f, c):
-        self.function = f
-        self.context = c
-        
-def native_update():
-    libigrep.FileWatch_Update()
-    gNativeTimer = threading.Timer(1, native_update)
-    gNativeTimer.start()
-
-def native_callback(id, directory, filename, action):
-    callback = gCallbacksForPython.get(id, None)
-    actionName = gActionNames.get(action, None);
-    if callback and actionName:
-        callback.function(callback.context, filename, actionName)
-    
-gCallbackForC = WatchCallbackType(native_callback)
-
-def native_MonitorDirectory(directory, callback, context):
-    global gNativeTimer
-    id = libigrep.FileWatch_AddWatch(directory, gCallbackForC)
-    gCallbacksForPython[id] = NativeCallback(callback, context);
-    if not gNativeTimer:
-        gNativeTimer = threading.Timer(1, native_update)
-        gNativeTimer.start()
-        
-    return id
-    
-def native_ForgetMonitor(id):
-    libigrep.FileWatch_RemoveWatch(id);
-    del gCallbacksForPython[id]
-    if len(gCallbacksForPython) == 0:
-        gNativeTimer.cancel();
-
-#######################################
+    gUseNativeMethod = True
+    import filemon_native
 
 gHandles = {}
 gHandleID = 0;
@@ -101,7 +57,9 @@ def slow_MonitorDirectory(directory, callback, context):
     monitorInfo = {}
     monitorInfo["callback"] = callback
     monitorInfo["context"] = context
+    
     monitorInfo["fileset"] = slow_GetFileset(directory)
+    
     monitorInfo["timeout"] = 60
     t = threading.Timer(monitorInfo["timeout"], slow_TimerPoll, [handle])
     monitorInfo["timer"] = t
@@ -119,6 +77,18 @@ def slow_ForgetMonitor(handle):
             pass
         del gHandles[handle]
     
+if gUseNativeMethod:
+    MonitorDirectory = filemon_native.native_MonitorDirectory
+    ForgetMonitor = filemon_native.native_ForgetMonitor
+else:
+    MonitorDirectory = slow_MonitorDirectory
+    ForgetMonitor = slow_ForgetMonitor
 
-MonitorDirectory = native_MonitorDirectory
-ForgetMonitor = native_ForgetMonitor
+    
+
+################################## Testing code
+#def cb(context, file, action):
+    #print(context, file, action)
+    
+# MonitorDirectory(os.path.expanduser("~/development/c/igrep/src/"), cb, "full");
+#MonitorDirectory(os.path.expanduser("~/development/c/"), cb, "full");
