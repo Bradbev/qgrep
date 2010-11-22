@@ -1,5 +1,6 @@
 import threading, os, platform, time
 from ctypes import *
+from logger import Log, Print
 
 MonitorDirectory = None
 ForgetMonitor = None
@@ -58,7 +59,9 @@ def slow_MonitorDirectory(directory, callback, context):
     monitorInfo["callback"] = callback
     monitorInfo["context"] = context
     
+    Log("Monitoring %s" % directory)
     monitorInfo["fileset"] = slow_GetFileset(directory)
+    Log("\tFound %d files" % len(monitorInfo["fileset"]))
     
     monitorInfo["timeout"] = 60
     t = threading.Timer(monitorInfo["timeout"], slow_TimerPoll, [handle])
@@ -71,6 +74,7 @@ def slow_MonitorDirectory(directory, callback, context):
 
 def slow_ForgetMonitor(handle):
     if handle in gHandles:
+        Log("Forgetting monitor for %s" % gHandles[handle]["dir"])
         try:
             gHandles[handle]["timer"].cancel()
         except:

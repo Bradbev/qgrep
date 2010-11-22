@@ -1,6 +1,8 @@
 ### Command line handling for instagrep
 import sys, os, platform
 import engine
+from logger import Log
+import logger
 
 ############################################
 ### Remove this chunk, do proper project handling
@@ -32,7 +34,7 @@ def ProjectExistsOrExit(name):
     return project
 
 def usage():
-    print "Usage"
+    print("Usage")
     l = 0;
     for k in gCommands.keys():
         l = max(len(k) + 5, l)
@@ -46,20 +48,27 @@ def help(arg = "", *ignored):
         return
     command = gCommands.get(arg, "")
     if command:
-        print command.longhelp
+        print(command.longhelp)
     else:
-        print "Unknown command " + arg
+        print("Unknown command " + arg)
         
 def listprojects(*ignored):
     print("Known projects")
     for n in engine.ProjectNames():
         print("\t" + n)
     
-def build(name=None, *ignored):
+def build_internal(name):
     ProjectExistsOrExit(name)
     print ("Building " + name + ", may take some time...")
     engine.GenerateProjectArchive(name)
     print ("Done building");
+    
+def build(name=None, *ignored):
+    if name == "all":
+        for p in engine.gProjects:
+            build_internal(p)
+    else:
+        build_internal(name)
         
 def files(name=None, *args):
     project = ProjectExistsOrExit(name)
@@ -79,14 +88,12 @@ def search(name=None, *optionsAndRegex):
     RunExternalSearch(project.archivefile, options, regex);
         
 def startservice(name=None, *ignored):
-    project = ProjectExistsOrExit(name)
-    engine.StartWatchingProject(project)
-    raw_input("Monitoring files, press Enter to stop\n")
-    engine.StopWatchingProject(project)
+    for p in engine.gProjects.values():
+        engine.StartWatchingProject(p)
+    raw_input("Monitoring projects, press Enter to stop\n")
+    for p in engine.gProjects.values():
+        engine.StopWatchingProject(p)
         
-def stopservice(*ignored):
-    print "stopservice"
-    
 def projectinfo(name=None, *ignored):
     project = ProjectExistsOrExit(name)
     print(project.archivefile)
@@ -94,7 +101,7 @@ def projectinfo(name=None, *ignored):
     for tf in project.trackedFiles:
         print(tf)
     print("Ignoring")
-    for ignore in project.ignoredFiles:
+    for ignore in project.ignoredRegexs:
         print(ignore)
         
 AddCommand(help, "help", "Provides further help for commands", "")
@@ -102,16 +109,16 @@ AddCommand(listprojects, "projects", "Lists all known projects", "longhelp")
 AddCommand(build, "build", "<project> regenerates the database for <project>", "longhelp")
 AddCommand(files, "files", "<project> <regex> filters the filenames in <project> through <regex>", "longhelp")
 AddCommand(search, "search", "<project> [iV/\\] <regex> searches for <regex> in the given project", "longhelp")
-AddCommand(startservice, "start-service", "<project> Launches ", "longhelp")
-AddCommand(stopservice, "stops-service", "", "longhelp")
+AddCommand(startservice, "start-service", "Begins monitoring all projects ", "longhelp")
 AddCommand(projectinfo, "info", "<project> displays information about <project>", "longhelp")
 
 def main(argv):                         
+    logger.EnableTTY(True)
     if argv:
         commandSpec = gCommands.get(argv[0], None)
         if commandSpec:
             return commandSpec.func(*argv[1:]);
-    print "Falling through to usage"
+    print("Falling through to usage")
     usage();
 
 main(sys.argv[1:])

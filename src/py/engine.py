@@ -1,6 +1,7 @@
 import sys, os, re, warnings, platform
 from ctypes import *
 import filemon
+from logger import Log, Print
 
 libigrep = None
 if platform.system() == 'Windows':
@@ -107,14 +108,14 @@ def GetProjectFiles(name):
 
 ################ Generating the archive
 def TryDelete(name):
-    #print ("Deleting " + name)
+    Log("Deleting " + name)
     try:
         os.remove(name)
     except OSError:
         pass
 
 def TryAtomicRename(old, new):
-    #print (old + " -> " + new)
+    Log("Rename " + old + " -> " + new)
     try:
         os.rename(old, new)
     except OSError:
@@ -139,7 +140,8 @@ def GenerateProjectArchive(name):
         fileCount = fileCount + 1
         libigrep.AddFileToArchive(archive, f)
     libigrep.CloseArchive(archive)
-    print("Added %d files to archive" % fileCount)
+    
+    Print("Added %d files to archive" % fileCount)
     TryAtomicRename(tmpname, project.archivefile)
     TryDelete(GetStalefilename(project))
     
@@ -152,7 +154,7 @@ def OutputStaleSet(project):
     TryAtomicRename(tmpname, GetStalefilename(project))
     
 def FileChangedCallback(project, file, changeType):
-    print(file, changeType, FileIsInProject(project, file))
+    Log("FileChangedCallback ", file, changeType, FileIsInProject(project, file))
     staleSet = project.staleSet
     delname = "-" + file;
     if changeType == "deleted":
