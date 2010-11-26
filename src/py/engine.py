@@ -154,7 +154,7 @@ def OutputStaleSet(project):
     TryAtomicRename(tmpname, GetStalefilename(project))
     
 def FileChangedCallback(project, file, changeType):
-    Log("FileChangedCallback ", file, changeType, FileIsInProject(project, file))
+    Log("FileChangedCallback " + file + changeType + str(FileIsInProject(project, file)))
     staleSet = project.staleSet
     delname = "-" + file;
     if changeType == "deleted":

@@ -1,5 +1,6 @@
 import threading, os, platform, time
 from ctypes import *
+from logger import Log, Print
 
 libigrep = None
 if platform.system() == 'Windows':
@@ -26,6 +27,7 @@ class NativeCallback:
         self.context = c
         
 def native_update():
+    Log("Update")
     libigrep.FileWatch_Update()
     gNativeTimer = threading.Timer(1, native_update)
     gNativeTimer.start()

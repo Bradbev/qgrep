@@ -7,9 +7,9 @@ ForgetMonitor = None
 
 #######################################
 gUseNativeMethod = False
-if platform.system() == 'Windows':
-    gUseNativeMethod = True
-    import filemon_native
+# if platform.system() == 'Windows':
+#     gUseNativeMethod = True
+#     import filemon_native
 
 gHandles = {}
 gHandleID = 0;
@@ -82,9 +82,11 @@ def slow_ForgetMonitor(handle):
         del gHandles[handle]
     
 if gUseNativeMethod:
+    Log("Using native file tracking")
     MonitorDirectory = filemon_native.native_MonitorDirectory
     ForgetMonitor = filemon_native.native_ForgetMonitor
 else:
+    Log("Using slow file tracking")
     MonitorDirectory = slow_MonitorDirectory
     ForgetMonitor = slow_ForgetMonitor
 
