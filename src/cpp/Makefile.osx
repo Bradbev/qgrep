@@ -20,7 +20,7 @@ igrepll: libigrep.dylib igrep.o *.h
 	g++ -o igrepll igrep.o libigrep.dylib $(CFLAGS)
 
 clean:
-	rm *.o *.dylib
+	rm -f *.o *.dylib
 
 .PHONY: clean
 
