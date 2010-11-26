@@ -1,6 +1,7 @@
 BASE = ../../packages
 
-INCLUDES = -I $(BASE)/libarchive_win32/include -I $(BASE)/re2_win32/
+ARCHIVE = $(BASE)/libarchive-2.8.4
+INCLUDES = -I $(ARCHIVE)/libarchive/ -I $(BASE)/re2/
 LIBDIR = $(BASE)/libs_w32
 LIBS = $(LIBDIR)/libarchive.dll.a $(LIBDIR)/libre2.so $(LIBDIR)/pthreadGC2.dll
 
@@ -11,23 +12,23 @@ CFLAGS = -O0 -g -Wall -Werror $(INCLUDES)
 CPPFLAGS = $(CFLAGS) 
 CC = gcc
 
-all: libigrep.dll igrepll
+all: igrep
 
 libigrep.dll: $(IGREP_OBJS) *.h
-	g++ -shared -o libigrep.dll $(IGREP_OBJS) $(LIBS)
+	@echo $(IGREP_OBJS)
+	g++ -dynamiclib -o libigrep.dll $(IGREP_OBJS) $(LIBS)
 
-igrepll: igrep.o *.h libigrep.dll
-	g++ -o igrepll igrep.o libigrep.dll $(CFLAGS) $(LIBS)
+igrep: igrep.o *.h $(IGREP_OBJS)
+	g++ -o igrep igrep.o $(IGREP_OBJS) $(CFLAGS) $(LIBS)
+
+#libigrep.dll $(CFLAGS)
 
 clean:
-	rm -f *.o *.dll *.exe
+	rm *.o *.dylib
 
 .PHONY: clean
 
 dist: clean all
-	cp $(LIBS) $(DIST_DIR)
-	strip $(DIST_DIR)/*.dll
-	strip $(DIST_DIR)/*.so
-	strip $(DIST_DIR)/*.a
+	cp igrep libigrep.dylib ../../dist/
 
 .PHONY: dist
