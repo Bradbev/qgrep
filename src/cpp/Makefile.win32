@@ -12,7 +12,7 @@ CFLAGS = -O0 -g -Wall $(INCLUDES)
 CPPFLAGS = $(CFLAGS) 
 CC = gcc
 
-all: igrepll libigrep.dll
+all: libigrep.dll igrepll
 
 libigrep.dll: $(IGREP_OBJS) *.h
 	g++ -shared -o libigrep.dll $(IGREP_OBJS) $(LIBS)
@@ -27,6 +27,6 @@ clean:
 
 .PHONY: clean
 
-dist: clean all
+dist: all
 	cp *.dll ../py
 .PHONY: dist
