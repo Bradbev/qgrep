@@ -12,4 +12,4 @@ void FileWatch_Update();
     
 } // extern "C"
 
-#endif __FILEWATCHER_H
+#endif //__FILEWATCHER_H

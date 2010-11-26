@@ -19,6 +19,9 @@ dist:
 	make -C src/py dist
 	cp src/cpp/$(GREP_LIB) $(DIST_DIR)
 	cp src/cpp/$(GREP_EXE) $(DIST_DIR)
+ifeq ($(shell uname -s), MINGW32_NT-5.1)
+	cp packages/libs_w32/* $(DIST_DIR)
+endif
 
 .PHONY: dist
 

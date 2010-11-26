@@ -1,34 +1,32 @@
 BASE = ../../packages
 
-ARCHIVE = $(BASE)/libarchive-2.8.4
-INCLUDES = -I $(ARCHIVE)/libarchive/ -I $(BASE)/re2/
+ARCHIVE = $(BASE)/libarchive_win32
+INCLUDES = -I $(ARCHIVE)/include/ -I $(BASE)/re2_win32/
 LIBDIR = $(BASE)/libs_w32
 LIBS = $(LIBDIR)/libarchive.dll.a $(LIBDIR)/libre2.so $(LIBDIR)/pthreadGC2.dll
 
 IGREP_SRCS = archive.cpp stream.cpp
 IGREP_OBJS = $(IGREP_SRCS:.cpp=.o) yarn.o
 
-CFLAGS = -O0 -g -Wall -Werror $(INCLUDES)
+CFLAGS = -O0 -g -Wall $(INCLUDES)
 CPPFLAGS = $(CFLAGS) 
 CC = gcc
 
-all: igrep
+all: igrepll libigrep.dll
 
 libigrep.dll: $(IGREP_OBJS) *.h
-	@echo $(IGREP_OBJS)
-	g++ -dynamiclib -o libigrep.dll $(IGREP_OBJS) $(LIBS)
+	g++ -shared -o libigrep.dll $(IGREP_OBJS) $(LIBS)
 
-igrep: igrep.o *.h $(IGREP_OBJS)
-	g++ -o igrep igrep.o $(IGREP_OBJS) $(CFLAGS) $(LIBS)
+igrepll: igrep.o *.h $(IGREP_OBJS)
+	g++ -o igrepll igrep.o $(IGREP_OBJS) $(CFLAGS) $(LIBS)
 
 #libigrep.dll $(CFLAGS)
 
 clean:
-	rm *.o *.dylib
+	rm -f *.o *.exe *.dll
 
 .PHONY: clean
 
 dist: clean all
-	cp igrep libigrep.dylib ../../dist/
-
+	cp *.dll ../py
 .PHONY: dist
