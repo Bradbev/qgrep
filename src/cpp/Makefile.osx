@@ -1,9 +1,9 @@
-BASE = ../../../packages
+BASE = ../../packages
 
 ARCHIVE = $(BASE)/libarchive-2.8.4
 INCLUDES = -I$(ARCHIVE)/libarchive/ -I../simplefilewatcher/include/
-LIBDIR = -L$(ARCHIVE)/.libs/
-LIBS = $(LIBDIR) -larchive -lre2
+LIBDIR = -L$(ARCHIVE)/.libs/ 
+LIBS = $(LIBDIR) -larchive -lre2 $(BASE)/libs_osx/liblua.a
 
 IGREP_SRCS = archive.cpp stream.cpp
 IGREP_OBJS = $(IGREP_SRCS:.cpp=.o) yarn.o
@@ -12,6 +12,9 @@ CFLAGS = -O0 -g -Wall -Werror -fPIC $(INCLUDES)
 CPPFLAGS = $(CFLAGS)
 
 all: libigrep.dylib igrepll
+
+igreplua: $(IGREP_OBJS) *.h igreplua.o
+	g++ -o igreplua igreplua.o $(IGREP_OBJS) $(CFLAGS) $(LIBS)
 
 libigrep.dylib: $(IGREP_OBJS) *.h
 	g++ -dynamiclib -o libigrep.dylib $(IGREP_OBJS) $(LIBS)
