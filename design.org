@@ -86,6 +86,7 @@ Python was really good for getting up and running, but it's not good for distrib
 an application.  Python is too big, and I'm not actually using many of the libraries,
 just the language features.
 
+
 * Documentation & Design
 igrep is a cross platform text searching utility.  The application uses basic platform 
 independant calls where possible, and relies on POSIX style support elsewhere.  For example,
