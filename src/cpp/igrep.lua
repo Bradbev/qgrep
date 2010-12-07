@@ -271,7 +271,6 @@ function startservice()
 end
 
 function main(...)
-   print ("Lua main")
    local newArgs = tableshift(arg)
    ExecuteCommandLine(newArgs)
 end
@@ -291,24 +290,3 @@ else
    print("Unable to find project config file " .. configFile)
 end
 -------------------------------------------
-
---------------------------------------------
---[[
-AddCommand(startservice, "start-service", "Begins monitoring all projects ", "longhelp")
-AddCommand(projectinfo, "info", "<project> displays information about <project>", "longhelp")
-
-
-   local t1 = os.time();
-   local count = 0;
-   local times = {}
-   --for f in walkdir("/Users/bradbeveridge/development/c", true) do
-   for f in walkdir(".", true) do
-      count = count + 1;
-      local info = c.fileinfo(f)
-      local isdir = info and info.isdir
-      times[f] = info
-      --print(f, isdir)
-   end
-   local t2 = os.time();
-   print("Scanned " .. count .. " files in " .. os.difftime(t2, t1));
---]]
