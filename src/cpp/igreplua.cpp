@@ -4,6 +4,10 @@ extern "C" {
 #include "lualib.h"
 }
 
+#if EMBED_BINARY
+#include "igreplua.bin.h"
+#endif
+
 #include <archive.h>
 #include <archive_entry.h>
 #include <stdio.h>
@@ -417,7 +421,12 @@ void InitLua()
 	luaL_openlibs(gLuaState);
 	luaL_register(gLuaState, "c", luaFunctions);
 	luaL_register(gLuaState, "archive", archiveFunctions);
+#if EMBED_BINARY
+	luaL_loadbuffer(gLuaState, lua_binary_data, sizeof(lua_binary_data), "main");
+	lua_pcall(gLuaState, 0, LUA_MULTRET, 0);	
+#else
 	luaL_dofile(gLuaState, "igrep.lua");
+#endif
     }
 }
 
