@@ -21,9 +21,6 @@ extern "C" {
 #include <string>
 #include "re2/re2.h"
 
-#include <fcntl.h> /* For STDIN_FILENO */
-#include <sys/select.h> /* For select() */
-
 lua_State* gLuaState = NULL;
 
 static int traceback (lua_State *L) 
@@ -110,6 +107,21 @@ public:
 	mCurrentShortPath = "";
     }
     
+    bool IsDir(struct dirent* entry)
+    {
+#ifdef WIN32
+	const char* path = std::string(mCurrentFullPath + entry->d_name).c_str();
+	struct stat info;
+	if (stat(path, &info) == 0)
+	{
+	    return info.st_mode & S_IFDIR;
+	}
+	return false;
+#else
+	return (entry->d_type == DT_DIR);
+#endif
+    }
+    
     std::string next()
     {
 retryDirOpen:
@@ -147,7 +159,7 @@ retryDirOpen:
 	    //printf("retry3 %s\n", entry->d_name);
 	    goto retryDirOpen;
 	}
-	if (entry->d_type == DT_DIR && mRecurse)
+	if (IsDir(entry) && mRecurse)
 	{
 	    std::string nextToInsert = mCurrentFullPath + entry->d_name;
 	    //printf("mCurrentFullPath = %s\n", mCurrentFullPath.c_str());
@@ -196,27 +208,34 @@ private:
     struct archive_entry* mEntry;
 };
 
+//#include <fcntl.h> /* For STDIN_FILENO */
+//#include <sys/select.h> /* For select() */
+
 // (timeoutSeconds:int) -> boolean
 int C_waitForKeypress(lua_State* L)
 {
-   fd_set read_fds;
-   struct timeval timeout;
+#if 0
+    fd_set read_fds;
+    struct timeval timeout;
    
-   FD_ZERO( &read_fds );
-   FD_SET( STDIN_FILENO, &read_fds );
+    FD_ZERO( &read_fds );
+    FD_SET( STDIN_FILENO, &read_fds );
    
-   timeout.tv_sec = luaL_checkinteger(L, 1);
-   timeout.tv_usec = 0;
-   int select_result = select( 1, &read_fds, NULL, NULL, &timeout );
-   if (select_result <= 0)
-   {
-       lua_pushboolean(L, false);
-   }
-   else
-   {
-       lua_pushboolean(L, true);
-   }
-   return 1;
+    timeout.tv_sec = luaL_checkinteger(L, 1);
+    timeout.tv_usec = 0;
+    int select_result = select( 1, &read_fds, NULL, NULL, &timeout );
+    if (select_result <= 0)
+    {
+	lua_pushboolean(L, false);
+    }
+    else
+    {
+	lua_pushboolean(L, true);
+    }
+    return 1;
+#else
+    return 0;
+#endif
 }
 
 // Gets the igrep path base
@@ -280,7 +299,11 @@ int C_fileinfo(lua_State* L)
     if (stat(path, &info) == 0)
     {
 	int table = lua_NewTable(L);
+#ifdef WIN32
+	lua_SetTable(L, table, "mtime", integer, info.st_mtime);
+#else
 	lua_SetTable(L, table, "mtime", integer, info.st_mtimespec.tv_sec);
+#endif
 	lua_SetTable(L, table, "isdir", boolean, info.st_mode & S_IFDIR);
 	return 1;
     }
@@ -425,6 +448,7 @@ void InitLua()
 	luaL_loadbuffer(gLuaState, lua_binary_data, sizeof(lua_binary_data), "main");
 	lua_pcall(gLuaState, 0, LUA_MULTRET, 0);	
 #else
+	printf("Doing file\n");
 	luaL_dofile(gLuaState, "igrep.lua");
 #endif
     }

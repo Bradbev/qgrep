@@ -1,18 +1,21 @@
 BASE = ../../packages
 
 ARCHIVE = $(BASE)/libarchive_win32
-INCLUDES = -I $(ARCHIVE)/include/ -I $(BASE)/re2_win32/
-LIBDIR = $(BASE)/libs_w32
-LIBS = $(LIBDIR)/libarchive.dll.a $(LIBDIR)/libre2.so $(LIBDIR)/pthreadGC2.dll
+INCLUDES = -I $(ARCHIVE)/include/ -I $(BASE)/re2_win32/ -I $(BASE)/lua-5.1.4/src
+LIBDIR = $(BASE)/libs_win32
+LIBS = $(LIBDIR)/libarchive.dll.a $(LIBDIR)/libre2.so $(LIBDIR)/pthreadGC2.dll $(LIBDIR)/liblua.a
 
 IGREP_SRCS = archive.cpp stream.cpp
 IGREP_OBJS = $(IGREP_SRCS:.cpp=.o) yarn.o
 
-CFLAGS = -O0 -g -Wall $(INCLUDES)
+CFLAGS = -O0 -g -Wall $(INCLUDES) $(DIST_OPTS) 
 CPPFLAGS = $(CFLAGS) 
 CC = gcc
 
-all: libigrep.dll igrepll
+all: libigrep.dll igrepll igreplua
+
+igreplua: $(IGREP_OBJS) *.h igreplua.o
+	g++ -o igreplua igreplua.o $(IGREP_OBJS) $(CFLAGS) $(LIBS)
 
 libigrep.dll: $(IGREP_OBJS) *.h
 	g++ -shared -o libigrep.dll $(IGREP_OBJS) $(LIBS)
@@ -27,6 +30,17 @@ clean:
 
 .PHONY: clean
 
-dist: all
-	cp *.dll ../py
+igreplua.bin.h: igrep.lua
+	$(BASE)/lua-5.1.4/src/luac.exe igrep.lua
+	echo "const char lua_binary_data[] = {" > igreplua.bin.h
+	od -txC -v luac.out | sed -e "s/^[0-9]*//" -e s"/ \([0-9a-f][0-9a-f]\)/0x\1,/g" -e"\$$d" >> igreplua.bin.h
+	echo "};" >> igreplua.bin.h
+	rm -f luac.out
+.PHONY: lua_bin
+
+dist: clean
+	make igreplua.bin.h 
+	DIST_OPTS=-DEMBED_BINARY make all
+	cp igreplua.exe $(DIST_DIR)/igrep.exe
+	
 .PHONY: dist
