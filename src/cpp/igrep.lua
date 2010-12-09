@@ -137,6 +137,7 @@ function Project(name, ...)
    proj.archiveFile = c.igreppath() .. "/" .. name .. ".tgz"
    proj.staleFile = proj.archiveFile .. ".stalefiles"
    proj.filesInArchive = nil
+   proj.filesInArchiveScannedAt = 0
    
    gProjects[name] = proj
 end
@@ -162,30 +163,39 @@ end
 
 function CreateProjectStaleFiles(project)
    -- scrape the files from the zip file
-   project.filesInArchive = project.filesInArchive or iterateToTable(iterateArchive(project.archiveFile))
-   local time = math.max(GetFileTime(project.archiveFile), 
+   local archiveTime = GetFileTime(project.archiveFile)
+   if archiveTime > project.filesInArchiveScannedAt then
+      project.filesInArchive = iterateToTable(iterateArchive(project.archiveFile))
+      project.filesInArchiveScannedAt = archiveTime
+   end
+   local time = math.max(archiveTime,
 			 GetFileTime(project.staleFile))
    
    local tmpname = os.tmpname()
    local file = io.open(tmpname, "w")
    local filenames = {}
    
+   local fileHasEntries = false
    -- Catch the new & modified files
    for f in IterateProjectFiles(project) do
       filenames[f] = true
       if GetFileTime(f) > time then
 	 file:write(f .. "\n")
+	 fileHasEntries = true
       end
    end
    -- Catch the deleted files
    for k,v in pairs(project.filesInArchive) do
       if not filenames[v] then
 	 file:write("-" .. v .. "\n")
+	 fileHasEntries = true
       end
    end
    
    file:close()
-   os.rename(tmpname, project.staleFile)
+   if fileHasEntries then
+      os.rename(tmpname, project.staleFile)
+   end
 end
 ------------- Command Handling ------------
 gCommands = {}
