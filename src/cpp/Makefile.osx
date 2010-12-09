@@ -38,6 +38,7 @@ igreplua.bin.h: igrep.lua
 dist: clean 
 	make igreplua.bin.h 
 	DIST_OPTS=-DEMBED_BINARY make all
+	cp igreplua $(DIST_DIR)/igrep
 	
 
 .PHONY: dist
