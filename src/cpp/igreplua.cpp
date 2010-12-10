@@ -86,7 +86,19 @@ int lua_NewTable(lua_State* L)
 
 void GetIgrepPath(char* buffer)
 {
-    sprintf(buffer, "%s/.igrep", getenv("HOME"));
+    char* home = getenv("HOME");
+#ifdef WIN32
+    if (home)
+    {
+	sprintf(buffer, "%s/.igrep", home);
+    }
+    else
+    {
+	sprintf(buffer, "%s%s/.igrep", getenv("HOMEDRIVE"), getenv("HOMEPATH"));
+    }
+#else
+    sprintf(buffer, "%s/.igrep", home);
+#endif
 }
 
 bool FileExists(const char* path)
