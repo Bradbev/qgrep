@@ -86,11 +86,18 @@ function fullMatchAny(regexs, str)
    return false
 end
 
+function partialMatchAny(regexs, str)
+   for k,v in ipairs(regexs) do
+      if v:partialMatch(str) then return true end
+   end
+   return false
+end
+
 function filteredWalkDir(path, include, ignore)
    local ret = {}
    for f in walkdir(path, true) do
-      if fullMatchAny(include, f) and not 
-	 fullMatchAny(ignore, f) then
+      if partialMatchAny(include, f) and not 
+	 partialMatchAny(ignore, f) then
 	 table.insert(ret, f)
       end
    end
@@ -109,11 +116,11 @@ function track(path, ...)
 end
 
 function ignored(x)
-   return not tracked(x)
+   return x.ignored
 end
 
 function ignore(...)
-   return { regexs = map(c.regex, arg) }
+   return { ignored = true, regexs = map(c.regex, arg) }
 end
 
 gMonitorFrequency = 60
@@ -121,13 +128,21 @@ function MonitorFrequency(frequency)
    gMonitorFrequency = math.floor(frequency)
 end
 
-function Project(name, ...)
+function Project(tableArg)
+   if type(tableArg) ~= "table" or type(tableArg[1]) ~= "string" then
+      print( type(tableArg), type(tableArg[1]))
+      print("Project must be called with a string as the first table entry")
+      print("Project{\"name\", track(\".\"), ignore(\".*c\")")
+   end
+   -- zap the first element of the table so that filters below don't pick up the name
+   local name = tableArg[1]
+   tableArg[1] = {}
    local proj = { name = name }
-   proj.tracked = filter(tracked, arg)
+   proj.tracked = filter(tracked, tableArg)
    
    -- flatten the ignored expressions
    local ignoreExprs = {}
-   for k,v in ipairs(filter(ignored, arg)) do
+   for k,v in ipairs(filter(ignored, tableArg)) do
       for k,v in ipairs(v.regexs) do
 	 setInsert(ignoreExprs, v)
       end
