@@ -1,3 +1,4 @@
+######################## OSX specific
 ifeq ($(shell uname -s), Darwin)
 PLATFORM = osx
 
@@ -5,15 +6,25 @@ lib_copy:
 	cp packages/libs_$(PLATFORM)/* $(DIST_DIR)
 .PHONY: lib_copy
 endif
+####################################################
 
+######################## Win32/MINGW specific
 ifeq ($(shell uname -s), MINGW32_NT-5.1)
 PLATFORM = win32
 
 lib_copy:
 	cp packages/libs_$(PLATFORM)/*.dll $(DIST_DIR)
 	cp packages/libs_$(PLATFORM)/*.so.0 $(DIST_DIR)
+	strip $(DIST_DIR)/*
 .PHONY: lib_copy
+
+installer: dist
+	rm -f installer/win32/setup.exe
+	"c:\Program Files\Inno Setup 5\ISCC.exe" installer/win32/igrep.iss
+.PHONY: installer
+
 endif
+####################################################
 
 export BASE_DIR = $(PWD)
 export DIST_DIR = $(PWD)/dist/$(PLATFORM)
