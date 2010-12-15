@@ -1,8 +1,18 @@
+gVersion = "alpha0.0.1"
+gVerbose = false
+
 ------------- Util
+function Log(...)
+   if c.isVerbose() then
+      print(unpack(arg))
+   end
+end
+
 -- Shift all indexes in a table down, dropping index 1
-function tableshift(t)
+function tableshift(t, shiftAmount)
+   shiftAmount = (shiftAmount or 1) + 1
    local ret = {}
-   for i = 2, #t do
+   for i = shiftAmount, #t do
       table.insert(ret, t[i])
    end
    return ret
@@ -107,12 +117,27 @@ end
 ------------- Project handling
 gProjects = {}
 
+function home()
+   local h = os.getenv("HOME")
+   if h then return h end
+   -- if win32, we might have to assemble the home path as below
+   return os.getenv("HOMEDRIVE") .. "/" .. os.getenv("HOMEPATH")
+end
+
+function PathExpand(path)
+   if path:sub(1,1) == "~" then
+      return home() .. path:sub(2)
+   else
+      return path
+   end
+end
+
 function tracked(x)
    return x.tracked
 end
 
 function track(path, ...)
-   return { tracked = true, path = path, regexs = map(c.regex, arg) }
+   return { tracked = true, path = PathExpand(path), regexs = map(c.regex, arg) }
 end
 
 function ignored(x)
@@ -225,16 +250,18 @@ function ExecuteCommandLine(args)
    if entry then
       entry.func(unpack(tableshift(args)))
    else
-      print("Unknown command " .. command)
+      print(string.format("Unknown command '%s'", command))
       usage()
    end
 end
 -------------------------------------------
 
 function usage()
+   print("In the following help [] denotes optional arguments, <> denotes required arguments")
+   print("Verbose mode is enabled with 'igrep v ...'")
    print("Commands for igrep")
    for k,v in pairs(gCommands) do
-      print("\t" .. k .. "\t" .. v.help)
+      print(string.format("%20s  -  %s", k, v.help))
    end
 end
 
@@ -295,6 +322,10 @@ function startservice()
    end
 end
 
+function version()
+   print("igrep version " .. gVersion)
+end
+
 function main(...)
    local newArgs = tableshift(arg)
    ExecuteCommandLine(newArgs)
@@ -306,6 +337,7 @@ defCommand(listprojects, "projects", "Lists all known projects", "longhelp")
 defCommand(nil, "search", "<project> [iV/\\] <regex> searches for <regex> in the given project", "longhelp")
 defCommand(nil, "files", "<project> <regex> filters the filenames in <project> through <regex>", "longhelp")
 defCommand(startservice, "start-service", "Begins monitoring all projects ", "longhelp")
+defCommand(version, "version", "Prints the version", "longhelp")
 
 ------------- Project config file handling
 configFile = c.igreppath() .. "/projects.lua" 

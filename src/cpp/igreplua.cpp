@@ -23,6 +23,21 @@ extern "C" {
 
 lua_State* gLuaState = NULL;
 
+bool gVerbose = false;
+
+int Log(const char* fmt, ...)
+{
+    if (gVerbose)
+    {
+	va_list ap;
+	va_start(ap, fmt);
+	int ret = vprintf(fmt, ap);
+	va_end(ap);
+	return ret;
+    }
+    return 0;
+}
+
 static int traceback (lua_State *L) 
 {
     if (!lua_isstring(L, 1))  /* 'message' not a string? */
@@ -71,6 +86,12 @@ int Report (lua_State *L, int status)
 int ReportedDoCall (lua_State *L, int narg, int clear)
 {
     return Report(L, DoCall(L, narg, clear));
+}
+
+int ReportedDoFile(lua_State *L, const char* filename)
+{
+    luaL_loadfile(L, filename);
+    return ReportedDoCall(L, 0, 0);
 }
 
 int lua_NewTable(lua_State* L)
@@ -378,6 +399,12 @@ int C_re2_compile(lua_State* L)
     return 1;
 }
 
+int C_isVerbose(lua_State* L)
+{
+    lua_pushboolean(L, gVerbose);
+    return 1;
+}
+
 luaL_Reg luaFunctions[] =
 {
     { "regex", C_re2_compile },
@@ -387,6 +414,7 @@ luaL_Reg luaFunctions[] =
     { "walkdir_next", C_walkdir_next },
     { "fileinfo", C_fileinfo },
     { "waitForKeypress", C_waitForKeypress },
+    { "isVerbose", C_isVerbose },
     { NULL, NULL}, 
 };
 
@@ -456,13 +484,19 @@ void InitLua()
 	luaL_openlibs(gLuaState);
 	luaL_register(gLuaState, "c", luaFunctions);
 	luaL_register(gLuaState, "archive", archiveFunctions);
+	int loadStatus = 0;
 #if EMBED_BINARY
 	luaL_loadbuffer(gLuaState, lua_binary_data, sizeof(lua_binary_data), "main");
-	lua_pcall(gLuaState, 0, LUA_MULTRET, 0);	
+	loadStatus = ReportedDoCall(gLuaState, 0, 0);	
 #else
-	printf("Doing file\n");
-	luaL_dofile(gLuaState, "igrep.lua");
+	printf("---- DEBUG DEBUG Doing file\n");
+	loadStatus = ReportedDoFile(gLuaState, "igrep.lua");
 #endif
+	if (loadStatus != 0)
+	{
+	    printf("Error occured when loading project file\n");
+	    exit(1);
+	}
     }
 }
 
@@ -543,6 +577,13 @@ int main(int argc, const char** argv)
 {
     if (argc > 1)
     {
+	if (strcmp("v", argv[1]) == 0)
+	{
+	    gVerbose = true;
+	    argc--;
+	    argv = &argv[1];
+	}
+	Log("Verbosity test %s\n", "foo");
 	bool search = StrStartsWith(argv[1], "search");
 	bool files = StrStartsWith(argv[1], "files");
 	if (search || files)
