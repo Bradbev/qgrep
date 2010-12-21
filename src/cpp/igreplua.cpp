@@ -585,7 +585,8 @@ int main(int argc, const char** argv)
 	}
 	Log("Verbosity test %s\n", "foo");
 	bool search = StrStartsWith(argv[1], "search");
-	bool files = StrStartsWith(argv[1], "files");
+	// File handling now done in Lua
+	bool files = false;//StrStartsWith(argv[1], "files");
 	if (search || files)
 	{
 	    FastPathSearch(argc, argv, files);

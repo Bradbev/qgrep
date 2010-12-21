@@ -103,11 +103,20 @@ function partialMatchAny(regexs, str)
    return false
 end
 
+function IsFile(path)
+   local info = c.fileinfo(path)
+   if info and not info.isdir then
+      return true
+   end
+   return false
+end
+
 function filteredWalkDir(path, include, ignore)
    local ret = {}
    for f in walkdir(path, true) do
       if partialMatchAny(include, f) and not 
-	 partialMatchAny(ignore, f) then
+	 partialMatchAny(ignore, f) and
+	 IsFile(f) then
 	 table.insert(ret, f)
       end
    end
@@ -148,9 +157,13 @@ function ignore(...)
    return { ignored = true, regexs = map(c.regex, arg) }
 end
 
-gMonitorFrequency = 60
-function MonitorFrequency(frequency)
-   gMonitorFrequency = math.floor(frequency)
+MonitorPeriodInMinutes = 10
+function GetMonitorPeriodInSeconds()
+   if MonitorPeriodInMinutes and type(MonitorPeriodInMinutes) == "number" then
+      return math.floor(MonitorPeriodInMinutes) * 60
+   else
+      return 10 * 60
+   end
 end
 
 function Project(tableArg)
@@ -176,6 +189,7 @@ function Project(tableArg)
    
    proj.archiveFile = c.igreppath() .. "/" .. name .. ".tgz"
    proj.staleFile = proj.archiveFile .. ".stalefiles"
+   proj.filenamesFile = proj.archiveFile .. ".files"
    proj.filesInArchive = nil
    proj.filesInArchiveScannedAt = 0
    
@@ -205,11 +219,11 @@ function CreateProjectStaleFiles(project)
    -- scrape the files from the zip file
    local archiveTime = GetFileTime(project.archiveFile)
    if archiveTime > project.filesInArchiveScannedAt then
+      Log("reloading archive")
       project.filesInArchive = iterateToTable(iterateArchive(project.archiveFile))
       project.filesInArchiveScannedAt = archiveTime
    end
-   local time = math.max(archiveTime,
-			 GetFileTime(project.staleFile))
+   local time = archiveTime
    
    local tmpname = os.tmpname()
    local file = io.open(tmpname, "w")
@@ -220,13 +234,16 @@ function CreateProjectStaleFiles(project)
    for f in IterateProjectFiles(project) do
       filenames[f] = true
       if GetFileTime(f) > time then
+	 Log(f)
 	 file:write(f .. "\n")
 	 fileHasEntries = true
       end
    end
    -- Catch the deleted files
+   local namesToRemove = {}
    for k,v in pairs(project.filesInArchive) do
       if not filenames[v] then
+	 namesToRemove[v] = true
 	 file:write("-" .. v .. "\n")
 	 fileHasEntries = true
       end
@@ -234,14 +251,19 @@ function CreateProjectStaleFiles(project)
    
    file:close()
    if fileHasEntries then
-      os.rename(tmpname, project.staleFile)
+      FileRename(tmpname, project.staleFile)
    end
 end
 ------------- Command Handling ------------
 gCommands = {}
+gLongHelp = {}
 
-function defCommand(func, name, help, longhelp)
-   gCommands[name] = { func = func, help = help, longhelp = longhelp }
+function defCommand(func, name, help)
+   gCommands[name] = { func = func, help = help }
+end
+
+function defHelp(func, longhelpString)
+   gLongHelp[func] = longhelpString
 end
 
 function ExecuteCommandLine(args)
@@ -276,13 +298,27 @@ function GetProjectOrDie(projectName)
 end
 
 function help(command)
-   entry = gCommands[command]
+   local entry = gCommands[command]
    if entry then
-      print("Extended help for " .. command)
-      print(entry.longhelp)
+      local longHelp = gLongHelp[entry.func]
+      if longHelp then
+	 print("---------------------------------------------------")
+	 print("Extended help for " .. command .. ":")
+	 print(longHelp)
+	 print("---------------------------------------------------")
+      else
+	 print(command .. " has no extended help")
+      end
    else
       if command then print(command .. " is an unknown command") end
       usage();
+   end
+end
+
+function FileRename(old, new)
+   if not os.rename(old, new) then
+      os.remove(new)
+      os.rename(old,new)
    end
 end
 
@@ -290,16 +326,22 @@ function build(projectName)
    local project = GetProjectOrDie(projectName)
    print("Building " .. projectName .. ", may take some time")
    local tmpname = os.tmpname()
+   local tmpfilenames = os.tmpname()
+   local filenamesfile = io.open(tmpfilenames, "w")
    local a = archive.CreateArchive(tmpname)
    local count = 0
    for f in IterateProjectFiles(project) do
+      Log("Adding file", f)
       count = count + 1
       archive.AddFileToArchive(a, f)
+      filenamesfile:write(string.format("%s\n", f))
    end
    archive.CloseArchive(a)
+   filenamesfile:close()
    
    print("Added " .. count .. " files to archive");
-   os.rename(tmpname, project.archiveFile)
+   FileRename(tmpname, project.archiveFile)
+   FileRename(tmpfilenames, project.filenamesFile)
    os.remove(project.staleFile)
    
    print("Done building")
@@ -312,32 +354,81 @@ function listprojects()
    end
 end
 
+function files(projectName, regex)
+   local project = GetProjectOrDie(projectName)
+   if not c.fileexists(project.filenamesFile) then
+      print("Unable to find " .. project.filenamesFile .. ", please use the build command")
+      return
+   end
+   regex = regex or "."
+   local pattern = c.regex("(?i)"..regex)
+   local stale = {}
+   local deleted = {}
+   if c.fileexists(project.staleFile) then
+      for sf in io.lines(project.staleFile) do
+	 if sf:sub(1,1) == "-" then 
+	    deleted[sf:sub(2)] = true
+	 else
+	    stale[sf] = true
+	 end
+      end
+   end
+   local shown = {}
+   for l in io.lines(project.filenamesFile) do
+      if not deleted[l] and pattern:partialMatch(l) then
+	 print(l)
+	 shown[l] = true
+      end
+   end
+   for k,v in pairs(stale) do
+      if not shown[k] and pattern:partialMatch(k) then
+	 print(k)
+      end
+   end
+end
+
 function startservice()
    print("Press any key to stop project monitoring")
    while true do
+      Log("Service scan")
       for k,v in pairs(gProjects) do
 	 CreateProjectStaleFiles(v)
       end
-      if c.waitForKeypress(gMonitorFrequency) then return end
+      if c.waitForKeypress(GetMonitorPeriodInSeconds()) then return end
    end
 end
+defHelp(startservice,
+"startservice activates the file watching portion of igrep. igrep does not        \
+exit from this mode until a key is pressed. When igrep is run with startservice   \
+it will begin monitoring all projects for file changes.  igrep currently only     \
+supports active monitoring, meaning that it will periodically scan all files in   \
+all projects to determine those that have changed.  This scan is relatively fast, \
+but may still take several seconds for very large projects.                       \
+How often the scan runs can be controlled by setting MonitorPeriodInMinutes is    \
+your project.lua file, such as:                                                   \
+MonitorPeriodInMinutes = 2                                                        \
+The default scan rate is ten minutes.  It is possible for igrep to return         \
+inconsistent results if a file has changed and not yet been scanned."
+)
 
 function version()
    print("igrep version " .. gVersion)
 end
+defHelp(version, 
+"Displays the version string for igrep")
 
 function main(...)
    local newArgs = tableshift(arg)
    ExecuteCommandLine(newArgs)
 end
 
-defCommand(help, "help", "Provides further help for commands")
-defCommand(build, "build", "<project> regenerates the database for <project>", "longhelp")
-defCommand(listprojects, "projects", "Lists all known projects", "longhelp")
-defCommand(nil, "search", "<project> [iV/\\] <regex> searches for <regex> in the given project", "longhelp")
-defCommand(nil, "files", "<project> <regex> filters the filenames in <project> through <regex>", "longhelp")
-defCommand(startservice, "start-service", "Begins monitoring all projects ", "longhelp")
-defCommand(version, "version", "Prints the version", "longhelp")
+defCommand(help,         "help",          "Provides further help for commands")
+defCommand(build,        "build",         "<project> regenerates the database for <project>")
+defCommand(listprojects, "projects",      "Lists all known projects")
+defCommand(nil,          "search",        "<project> [iV/\\] <regex> searches for <regex> in the given project")
+defCommand(files,        "files",         "<project> <regex> filters the filenames in <project> through <regex>")
+defCommand(startservice, "start-service", "Begins monitoring all projects ")
+defCommand(version,      "version",       "Prints the version")
 
 ------------- Project config file handling
 configFile = c.igreppath() .. "/projects.lua" 
