@@ -73,13 +73,19 @@ Searcher
 - start-service
 - stop-service
   
-* Plan [5/7]
+* Plan [6/11]
   - [X] Build a use-case project & use daily
   - [X] hook grep commands to use-case project
   - [X] setup win dev environment (local with parallels?)
   - [X] port current code to win32 (C)
   - [X] port python code to win32
-  - [ ] begin use at work	
+  - [X] begin use at work	
+  - [ ] faster filename searching
+  - [ ] documentation
+  - [ ] determine revenue model
+  - [ ] get beta testers
+  - [ ] setup website & payment options	
+  - [ ] more performance (pigz, lock free stream, threaded RE2), currently not very multithreaded
 	
 * Python sucks for scripting :(
 Python was really good for getting up and running, but it's not good for distributing
