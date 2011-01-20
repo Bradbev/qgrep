@@ -73,19 +73,23 @@ Searcher
 - start-service
 - stop-service
   
-* Plan [6/11]
+* Plan [7/12]
   - [X] Build a use-case project & use daily
   - [X] hook grep commands to use-case project
   - [X] setup win dev environment (local with parallels?)
   - [X] port current code to win32 (C)
   - [X] port python code to win32
   - [X] begin use at work	
-  - [ ] faster filename searching
+  - [X] faster filename searching (look aside)
+  - [ ] help
   - [ ] documentation
   - [ ] determine revenue model
   - [ ] get beta testers
   - [ ] setup website & payment options	
   - [ ] more performance (pigz, lock free stream, threaded RE2), currently not very multithreaded
+	- Apparently lock free stream make 0 difference!
+	- Spin waiting on read block
+	- TIME TO PROFILE!!
 	
 * Python sucks for scripting :(
 Python was really good for getting up and running, but it's not good for distributing

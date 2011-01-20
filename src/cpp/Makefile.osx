@@ -8,7 +8,7 @@ LIBS = $(LIBDIR) -larchive -lre2 $(BASE)/libs_osx/liblua.a
 IGREP_SRCS = archive.cpp stream.cpp
 IGREP_OBJS = $(IGREP_SRCS:.cpp=.o) yarn.o
 
-CFLAGS = -O0 -g -Wall -Werror -fPIC $(INCLUDES) $(DIST_OPTS)
+CFLAGS = -O3 -g -Wall -Werror -fPIC $(INCLUDES) $(DIST_OPTS) -mmacosx-version-min=10.4
 CPPFLAGS = $(CFLAGS)
 
 all: libigrep.dylib igrepll igreplua
