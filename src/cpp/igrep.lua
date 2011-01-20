@@ -146,7 +146,11 @@ function tracked(x)
 end
 
 function track(path, ...)
-   return { tracked = true, path = PathExpand(path), regexs = map(c.regex, arg) }
+   local regexs = arg
+   if #regexs == 0 then
+      regexs = {"."}
+   end
+   return { tracked = true, path = PathExpand(path), regexs = map(c.regex, regexs) }
 end
 
 function ignored(x)
@@ -197,11 +201,16 @@ function Project(tableArg)
 end
 
 function IterateProjectFiles(project)
+   local seen = {}
    return coroutine.wrap(
 	function ()
  	   for k,v in pairs(project.tracked) do
  	      for k,v in pairs(filteredWalkDir(v.path, v.regexs, project.ignoreExprs)) do
- 		 coroutine.yield(v)
+		 if not seen[v] then
+		    coroutine.yield(v)
+		 else
+		    seen[v] = true
+		 end
 	      end
 	   end
 	end)
@@ -386,6 +395,9 @@ function files(projectName, regex)
       end
    end
 end
+defHelp(files,
+""
+)
 
 function startservice()
    print("Press any key to stop project monitoring")

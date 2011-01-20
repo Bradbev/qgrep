@@ -4,6 +4,13 @@ PLATFORM = osx
 
 lib_copy:
 	cp packages/libs_$(PLATFORM)/* $(DIST_DIR)
+	install_name_tool -change /usr/lib/libarchive.2.dylib libarchive.2.dylib $(DIST_DIR)/igrep
+	install_name_tool -change obj/so/libre2.so.0 libre2.so.0 $(DIST_DIR)/igrep
+	install_name_tool -change /usr/lib/libbz2.1.0.dylib libbz2.1.0.dylib $(DIST_DIR)/libarchive.2.dylib
+	install_name_tool -change /usr/lib/libz.1.dylib libz.1.dylib $(DIST_DIR)/libarchive.2.dylib
+
+#	mv $(DIST_DIR)/libre2.so.0 $(DIST_DIR)/libre2.so.1
+#	mv $(DIST_DIR)/libarchive.2.dylib $(DIST_DIR)/libarchive.3.dylib
 .PHONY: lib_copy
 endif
 ####################################################
@@ -33,6 +40,7 @@ dist:
 	rm -rf $(DIST_DIR)
 	mkdir -p $(DIST_DIR)
 	make -C src/cpp dist
+	make -C doc dist
 	make lib_copy
 
 .PHONY: dist

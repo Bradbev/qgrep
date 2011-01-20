@@ -15,6 +15,10 @@ extern "C" {
  * usedBlocks == numberOfBlocks -> stream full
  */
 
+#ifdef LOCK_FREE
+typedef volatile int CAS_int;
+#endif
+
 struct Stream
 {
     char** blocks;
@@ -27,7 +31,11 @@ struct Stream
     bool readBlockIsActive;
     bool writeBlockIsActive;
     
+#ifndef LOCK_FREE
     lock* activeBlocks;
+#else
+    CAS_int activeBlocks;
+#endif
     
     Stream(unsigned int size, unsigned int numBlocks)
     {
@@ -39,7 +47,11 @@ struct Stream
 	}
 	numberOfBlocks = numBlocks;
 	blockSize = size;
+#ifndef LOCK_FREE
 	activeBlocks = new_lock(0);
+#else
+	activeBlocks = 0;
+#endif
 	currentWriteIndex = 0;
 	currentReadIndex = 0;
 	readBlockIsActive = false;
@@ -48,7 +60,9 @@ struct Stream
     
     ~Stream()
     {
+#ifndef LOCK_FREE
 	free_lock(activeBlocks);
+#endif
 	for (unsigned int i = 0; i < numberOfBlocks; i++)
 	{
 	    delete [] blocks[i];
@@ -57,18 +71,59 @@ struct Stream
     }
 };
 
-void locked_twist(lock *bolt, enum twist_op op, long val)
+void protected_twist(lock *bolt, enum twist_op op, long val)
 {
     possess(bolt);
     twist(bolt, op, val);
 }
 
-void locked_wait_for(lock *bolt, enum wait_op op, long val)
+void protected_wait_for(lock *bolt, enum wait_op op, long val)
 {
     possess(bolt);
     wait_for(bolt, op, val);
     release(bolt);
 }
+
+#ifdef LOCK_FREE
+void spin_until_less(CAS_int* val, int target)
+{
+    while (*val >= target)
+    {
+	usleep(10);
+	//printf("spin < %d %d\n", *val, target);
+    }
+}
+
+void spin_until_greater(CAS_int* val, int target)
+{
+    while (*val <= target)
+    {
+	usleep(10);
+	//printf("spin > %d %d\n", *val, target);
+    }
+}
+
+void spin_until_eq(CAS_int* val, int target)
+{
+    while (*val != target)
+    {
+	usleep(10);
+	//printf("spin = %d %d\n", *val, target);
+    }
+}
+
+void CAS_twist(CAS_int* val, int delta)
+{
+    while (1)
+    {
+	int v = *val;
+	if (__sync_bool_compare_and_swap(val, v, v + delta))
+	{
+	    return;
+	}
+    }
+}
+#endif
 
 Stream* CreateStream(unsigned int blockSize, unsigned int numberOfBlocks)
 {
@@ -84,7 +139,11 @@ int gReads = 0;
 
 void* GetWriteBlock(Stream* stream, unsigned int* blockSize)
 {
-    locked_wait_for(stream->activeBlocks, TO_BE_LESS_THAN, stream->numberOfBlocks);
+#ifndef LOCK_FREE
+    protected_wait_for(stream->activeBlocks, TO_BE_LESS_THAN, stream->numberOfBlocks);
+#else
+    spin_until_less(&stream->activeBlocks, stream->numberOfBlocks);
+#endif
     assert(stream->writeBlockIsActive == false);
     stream->writeBlockIsActive = true;
     if (blockSize)
@@ -99,12 +158,20 @@ void PutWriteBlock(Stream* stream)
     assert(stream->writeBlockIsActive == true);
     stream->currentWriteIndex = (stream->currentWriteIndex + 1) % stream->numberOfBlocks;
     stream->writeBlockIsActive = false;
-    locked_twist(stream->activeBlocks, BY, 1);
+#ifndef LOCK_FREE
+    protected_twist(stream->activeBlocks, BY, 1);
+#else
+    CAS_twist(&stream->activeBlocks, 1);
+#endif
 }
 
 void* GetReadBlock(Stream* stream, unsigned int* blockSize)
 {
-    locked_wait_for(stream->activeBlocks, TO_BE_MORE_THAN, 0);
+#ifndef LOCK_FREE
+    protected_wait_for(stream->activeBlocks, TO_BE_MORE_THAN, 0);
+#else
+    spin_until_greater(&stream->activeBlocks, 0);
+#endif
     assert(stream->readBlockIsActive == false);
     stream->readBlockIsActive = true;
     if (blockSize)
@@ -120,12 +187,20 @@ void ReleaseReadBlock(Stream* stream)
     
     stream->currentReadIndex = (stream->currentReadIndex + 1) % stream->numberOfBlocks;
     stream->readBlockIsActive = false;
-    locked_twist(stream->activeBlocks, BY, -1);
+#ifndef LOCK_FREE
+    protected_twist(stream->activeBlocks, BY, -1);
+#else
+    CAS_twist(&stream->activeBlocks, -1);
+#endif
 }
 
 void BlockUntilStreamIsEmpty(Stream* stream)
 {
-    locked_wait_for(stream->activeBlocks, TO_BE, 0);
+#ifndef LOCK_FREE
+    protected_wait_for(stream->activeBlocks, TO_BE, 0);
+#else
+    spin_until_eq(&stream->activeBlocks, 0);
+#endif
 }
 
 long gMaxBlocksOut = -1;
@@ -136,7 +211,8 @@ void rndsleep()
 }
 
 // 1Gb in 16k blocks
-#define LOOP_COUNT ((1024 * 1024 * 1024) / (16 * 1024))
+//#define LOOP_COUNT ((1024 * 1024 * 1024) / (16 * 1024))
+#define LOOP_COUNT ((1024 * 1024))
 #define BLOCK_COUNT 10000
 
 void producer(void* context)
@@ -148,7 +224,11 @@ void producer(void* context)
     for (int i = 0; i < LOOP_COUNT; i++)
     {
 	//printf("%d ", i);
+#ifndef LOCK_FREE
 	long blockCount = peek_lock(s->activeBlocks);
+#else
+	long blockCount = s->activeBlocks;
+#endif
 	rndsleep();
 	int* block = (int*)GetWriteBlock(s, &blockSize);
 	gMaxBlocksOut = std::max(gMaxBlocksOut, blockCount);
@@ -195,3 +275,10 @@ void stream_test()
     join(l);
     printf("Max blocks is %d of %d\n", (int)gMaxBlocksOut, BLOCK_COUNT);
 }
+
+#ifdef STREAM_TEST_MAIN
+int main(int argc, char** argv)
+{
+    stream_test();
+}
+#endif
