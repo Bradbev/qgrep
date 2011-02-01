@@ -1,0 +1,160 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html> <head>
+<title></title>
+</head>
+
+<body>
+<h1></h1>
+
+
+<h1>qgrep (Quick Grep)</h1>
+
+<p>Super fast full text grep for programmers</p>
+
+<hr />
+
+<h2>Introduction</h2>
+
+<p>Programmers commonly need to search code, faster searching makes for
+increased productivity. qgrep is significantly faster than search tools
+that don't build a database and is very easy to setup - simple
+projects need only a couple of lines of configuration. <br />
+qgrep runs on OS X and Windows, with a Linux port coming soon.</p>
+
+<h2>Installation</h2>
+
+<h3>OSX</h3>
+
+<p>Currently qgrep runs on OSX 10.5 or later on a 64bit Intel system.
+<a href="qgrep-osx.tgz">Download</a> and extract to a directory of your choice.  </p>
+
+<h3>Linux</h3>
+
+<p>Coming soon, please email <a href="m&#97;&#x69;l&#x74;&#x6F;:&#98;&#114;&#x61;&#x64;&#64;&#x71;&#x67;&#x72;&#101;&#112;&#46;&#99;&#x6F;&#x6D;">&#98;&#114;&#x61;&#x64;&#64;&#x71;&#x67;&#x72;&#101;&#112;&#46;&#99;&#x6F;&#x6D;</a> to express your
+interest.</p>
+
+<h3>Windows</h3>
+
+<p><a href="setup">Download</a> and run the Windows installer.</p>
+
+<h2>Configuration and Usage</h2>
+
+<p>qgrep expects to find a configuration file in a specific place.  For
+*nix systems the file is <code>~/.qgrep/projects.lua</code></p>
+
+<p>For Windows the file is <code>$(HOME)/.qgrep/projects.lua</code> if it exists, or
+<code>$(HOMEDRIVE)$(HOMEPATH)/.qgrep/projects.lua</code> otherwise.</p>
+
+<p>If the projects.lua file cannot be found, qgrep will offer to create
+the expected directory and config file. A large part of qgrep's
+functionality is written in Lua, and Lua is also used for project
+configuration.  Every qgrep command except <strong>search</strong> results in the
+<code>projects.lua</code> file being executed.  The full Lua language is able to
+be used from <code>projects.lua</code>, though it should be kept simple.  The
+<strong>search</strong> command is intended to be as fast as possible (the whole
+point of qgrep!), and will run without interpreting the <code>projects.lua</code>
+file. </p>
+
+<h3>Example projects.lua file</h3>
+
+<pre><code>Project{"linux", 
+    track("~/source/linux-2.6", "\\.c$", "\\.h$"),
+    ignore("f.o", "^bar\\.c$") 
+}
+</code></pre>
+
+<p><strong>Project</strong> is a Lua function that accepts a table as its only
+  argument, the table should be a comma seperated list within {}.
+  The first element in the table <em>must</em> be a string and is used to
+  name the project, "linux" in our example case.  There can be any
+  number of <strong>track</strong> or <strong>ignore</strong> entries after the name of the
+  project.</p>
+
+<p><strong>track(path, patterns...)</strong> tells qgrep to add <em>path</em> to the project,
+  and will recursively add all subdirectories.  <em>patterns</em> is a list
+  of regular expression patterns, any files under path that match any
+  pattern will be added.  In the example, we wish to add any file that
+  ends in '.c' or '.h'.  You can have any number of patterns after the
+  path entry. Having no patterns will result in all files being
+  added.  Because the project file is just Lua code, backslashes must
+  be escaped.  In the above example <code>\\.c</code> becomes the regex <code>\.c</code>, so
+  that <code>.</code> will be matched as the period character rather than the
+  usual regex meaning of ". means match any character"</p>
+
+<p><strong>ignore(patterns...)</strong> tells qgrep to ignore files that match any
+  pattern.  There can be multiple ignore entries.  In our example, any
+  filename that contains the pattern "f.o" will be ignored.  Also any
+  file that is exactly named "bar.c" will be ignored.  The exactness
+  is because the pattern is surrouded by <code>^</code> and <code>$</code>.  The second
+  ignore pattern will never be matched because filenames are tested
+  with their full path, ie all files will start with
+  <code>~/source/linux-2.6/</code> </p>
+
+<h2>Benchmarks</h2>
+
+<p>All benchmarks were taken on my MacBook Pro, which has a 2.26 Core Duo
+CPU and a 5400rpm HDD. I am searching for a text string that is not in
+the target corpus, this gives a good picture of 'worst case'
+performance and how quickly the entire corpus can be searched.</p>
+
+<p>The first timing is using regular find &amp; grep to search for the text
+string "NotFound_", and takes 27 seconds:</p>
+
+<pre><code>   $ time find . -iname "*.c" -or -iname "*.h" -exec grep NotFound_ {} \; 
+   real 0m27.173s 
+   user 0m5.991s 
+   sys 0m18.970s
+</code></pre>
+
+<p>In comparison, searching with qgrep takes 2.2 seconds - more than 10
+times faster</p>
+
+<pre><code>  $ time qgrep search linux NotFound_
+   real 0m2.211s 
+   user 0m3.035s 
+   sys 0m0.142s
+</code></pre>
+
+<p>qgrep does need to pay a cost to generate its internal database, but
+that cost is roughly similar to doing a single search with find/grep</p>
+
+<pre><code> $ time qgrep build linux 
+ Building linux, may take some time Added
+ 26425 files to archive Done building
+ real 0m25.307s 
+ user 0m21.153s 
+ sys 0m1.257s
+</code></pre>
+
+<h2>Etc</h2>
+
+<p>qgrep was written by Brad Beveridge, if you find qgrep to be useful a
+donation would be excellent motivation for me to make further
+improvements (such as much improved multicore support!). If total
+donations exceed $1000 Canadian dollars, I will release qgrep under a
+permissive licence like BSD.   </p>
+
+<p><em>PAY PAL DONATE BUTTON HERE</em></p>
+
+<h2>Credits</h2>
+
+<p>qgrep uses the following libraries, many thanks to their authors</p>
+
+<ul>
+<li><a href="http://code.google.com/p/re2/">RE2</a> provides the regular expression
+code used for matching</li>
+<li><a href="http://code.google.com/p/libarchive/">libarchive</a> provides the code
+used for compressing and decompressing the search material</li>
+<li><a href="http://sourceware.org/pthreads-win32/">PThreads-w32</a> provides
+threading on Windows</li>
+<li><a href="http://www.zlib.net/pigz/">Pigz</a> provided pthread interfacing</li>
+<li><a href="http://www.lua.org/">Lua</a> is the programming language for much of
+qgrep</li>
+</ul>
+
+
+
+<hr>
+<address></address>
+<!-- hhmts start --> Last modified: Sun Dec 26 16:12:23 PST 2010 <!-- hhmts end -->
+</body> </html>
