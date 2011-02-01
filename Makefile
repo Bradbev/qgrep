@@ -1,6 +1,9 @@
 ######################## OSX specific
 ifeq ($(shell uname -s), Darwin)
 PLATFORM = osx
+docs:
+	make -C doc dist
+.PHONY: docs
 
 lib_copy:
 .PHONY: lib_copy
@@ -20,6 +23,10 @@ upload: installer
 ifeq ($(shell uname -s), MINGW32_NT-5.1)
 PLATFORM = win32
 
+docs:
+	echo "Not making docs for win32"
+.PHONY: docs
+
 lib_copy:
 	cp packages/libs_$(PLATFORM)/*.dll $(DIST_DIR)
 	cp packages/libs_$(PLATFORM)/*.so.0 $(DIST_DIR)
@@ -37,11 +44,10 @@ endif
 export BASE_DIR = $(PWD)
 export DIST_DIR = $(PWD)/dist/$(PLATFORM)
 
-dist:
+dist: docs
 	rm -rf $(DIST_DIR)
 	mkdir -p $(DIST_DIR)
 	make -C src/cpp dist
-	make -C doc dist
 	make lib_copy
 
 .PHONY: dist
