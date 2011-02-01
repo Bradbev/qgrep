@@ -1,4 +1,4 @@
-gVersion = "alpha0.0.1"
+gVersion = "1.0.0"
 gVerbose = false
 
 ------------- Util
@@ -191,7 +191,7 @@ function Project(tableArg)
    end
    proj.ignoreExprs = setToList(ignoreExprs)
    
-   proj.archiveFile = c.igreppath() .. "/" .. name .. ".tgz"
+   proj.archiveFile = c.qgreppath() .. "/" .. name .. ".tgz"
    proj.staleFile = proj.archiveFile .. ".stalefiles"
    proj.filenamesFile = proj.archiveFile .. ".files"
    proj.filesInArchive = nil
@@ -289,8 +289,8 @@ end
 
 function usage()
    print("In the following help [] denotes optional arguments, <> denotes required arguments")
-   print("Verbose mode is enabled with 'igrep v ...'")
-   print("Commands for igrep")
+   print("Verbose mode is enabled with 'qgrep v ...'")
+   print("Commands for qgrep")
    for k,v in pairs(gCommands) do
       print(string.format("%20s  -  %s", k, v.help))
    end
@@ -396,7 +396,7 @@ function files(projectName, regex)
    end
 end
 defHelp(files,
-""
+"Searches filenames in the project instead of file contents."
 )
 
 function startservice()
@@ -410,43 +410,84 @@ function startservice()
    end
 end
 defHelp(startservice,
-"startservice activates the file watching portion of igrep. igrep does not        \
-exit from this mode until a key is pressed. When igrep is run with startservice   \
-it will begin monitoring all projects for file changes.  igrep currently only     \
+"startservice activates the file watching portion of qgrep. qgrep does not        \
+exit from this mode until a key is pressed. When qgrep is run with startservice   \
+it will begin monitoring all projects for file changes.  qgrep currently only     \
 supports active monitoring, meaning that it will periodically scan all files in   \
 all projects to determine those that have changed.  This scan is relatively fast, \
 but may still take several seconds for very large projects.                       \
 How often the scan runs can be controlled by setting MonitorPeriodInMinutes is    \
 your project.lua file, such as:                                                   \
 MonitorPeriodInMinutes = 2                                                        \
-The default scan rate is ten minutes.  It is possible for igrep to return         \
+The default scan rate is ten minutes.  It is possible for qgrep to return         \
 inconsistent results if a file has changed and not yet been scanned."
 )
 
 function version()
-   print("igrep version " .. gVersion)
+   print("qgrep version " .. gVersion)
 end
 defHelp(version, 
-"Displays the version string for igrep")
+"Displays the version string for qgrep")
 
 function main(...)
    local newArgs = tableshift(arg)
    ExecuteCommandLine(newArgs)
 end
 
+function fakesearch() end
+defHelp(fakesearch,
+[[Search is the primary use of qgrep.  The search command will not 
+interpret the projects.lua file if possible.  By default matches 
+will be returned in a format that is the same as grep, which is
+<filename>:<linenumber>:<line>
+	 
+Syntax is qgrep search <project> [options] <regex>
+Options are:
+  i - causes the search to be case insensitive
+  f - search only filenames in the project 
+  V - output matches in a format suitable for Visual Studio to jump to.
+      The format is <filename> (<linenumber>):<line>
+  \\\\ - replace forward slashes (/) with backslashes    
+  / - replace backslashes (\\) with forward slashes
+
+Replacing slashes may be useful for editors that expect a certain slash type.]])
+
 defCommand(help,         "help",          "Provides further help for commands")
 defCommand(build,        "build",         "<project> regenerates the database for <project>")
 defCommand(listprojects, "projects",      "Lists all known projects")
-defCommand(nil,          "search",        "<project> [iV/\\] <regex> searches for <regex> in the given project")
+defCommand(fakesearch,   "search",        "<project> [iV/\\] <regex> searches for <regex> in the given project")
 defCommand(files,        "files",         "<project> <regex> filters the filenames in <project> through <regex>")
 defCommand(startservice, "start-service", "Begins monitoring all projects ")
 defCommand(version,      "version",       "Prints the version")
 
 ------------- Project config file handling
-configFile = c.igreppath() .. "/projects.lua" 
+configFile = c.qgreppath() .. "/projects.lua" 
 if c.fileexists(configFile) then
    dofile(configFile)
 else
    print("Unable to find project config file " .. configFile)
+   print("Would you like a default config file to be created? [y/n]")
+   local line = io.read()
+   if line and line:lower() == "y" then
+      c.mkdir(c.qgreppath())
+      local f = io.open(configFile, "w")
+      if not f then
+	 print("Unable to create " .. configFile .. " sorry :(")
+	 os.exit(0)
+      end
+      f:write(
+---- RAW TEXT START
+[[
+Project{"exampleproject"
+   ,track("basedirectory", "\\.c", "\\.h", "\\.lua")
+   ,ignore(".*\\.o")
+}
+]]
+---- RAW TEXT END
+)
+      print("Created!")
+      f:close()
+   end
+   os.exit(0)
 end
 -------------------------------------------
