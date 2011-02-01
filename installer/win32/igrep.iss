@@ -1,10 +1,11 @@
-; -- igrep.iss --
+; -- qgrep.iss --
 
 [Setup]
-AppName=Instant Grep
-AppVersion=0.5
-DefaultDirName={pf}\igrep
-DefaultGroupName=igrep
+ChangesEnvironment=true
+AppName=Quick Grep
+AppVersion=1.0.0
+DefaultDirName={pf}\qgrep
+DefaultGroupName=qgrep
 ; UninstallDisplayIcon={app}\MyProg.exe
 Compression=lzma2
 SolidCompression=yes
@@ -24,3 +25,18 @@ Source: "*"; DestDir: "{app}"
 
 ;[Icons]
 ;Name: "{group}\My Program"; Filename: "{app}\MyProg.exe"
+
+[Tasks]
+Name: modifypath; Description: &Add qgrep directory to your environmental path; Flags: unchecked
+
+[Code]
+const
+  ModPathName = 'modifypath';
+  ModPathType = 'user';
+  
+function ModPathDir(): TArrayOfString;
+begin
+  setArrayLength(Result, 1)
+  Result[0] := ExpandConstant('{app}');
+end;
+#include "modpath.iss"
