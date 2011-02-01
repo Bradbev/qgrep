@@ -1,44 +1,46 @@
-# igrep - Super fast full text grep for programmers
+# qgrep (Quick Grep)
+Super fast full text grep for programmers
 
 -----------------------
 
 ## Introduction 
 Programmers commonly need to search code, faster searching makes for
-more productivity. igrep is significantly faster than search tools
+increased productivity. qgrep is significantly faster than search tools
 that don't build a database and is very easy to setup - simple
 projects need only a couple of lines of configuration.  
-igrep runs on OS X and Windows, with a Linux port coming soon.
+qgrep runs on OS X and Windows, with a Linux port coming soon.
 
 ## Installation 
 
-### OSX 
-[Download](nofile) and extract to a directory of your choice.  
+### OSX
+Currently qgrep runs on OSX 10.5 or later on a 64bit Intel system.
+[Download](qgrep-osx.tgz) and extract to a directory of your choice.  
 
 ### Linux 
-Coming soon, please email <brad@igrep.com> to express your
+Coming soon, please email <brad@qgrep.com> to express your
 interest.
 
 ### Windows 
 [Download](setup) and run the Windows installer.
 
 ## Configuration and Usage 
-igrep expects to find a configuration file in a specific place.  For
-*nix systems the file is `~/.igrep/projects.lua`
+qgrep expects to find a configuration file in a specific place.  For
+*nix systems the file is `~/.qgrep/projects.lua`
 
-For Windows the file is `$(HOME)/.igrep/projects.lua` if it exists, or
-`$(HOMEDRIVE)$(HOMEPATH)/.igrep/projects.lua` otherwise.
+For Windows the file is `$(HOME)/.qgrep/projects.lua` if it exists, or
+`$(HOMEDRIVE)$(HOMEPATH)/.qgrep/projects.lua` otherwise.
 
-If the projects.lua file cannot be found, igrep will output an error
-message with the path where it is expecting to find the file. A large
-part of igrep's functionality is written in Lua, and Lua is also used
-for project configuration.  Every igrep command except **search**
-results in the `projects.lua` file being executed.  The full Lua
-language is able to be used from `projects.lua`, though it should be
-kept simple.  The **search** command is intended to be as fast as
-possible (the whole point of igrep!), and will run without processing
-the `projects.lua` file.
+If the projects.lua file cannot be found, qgrep will offer to create
+the expected directory and config file. A large part of qgrep's
+functionality is written in Lua, and Lua is also used for project
+configuration.  Every qgrep command except **search** results in the
+`projects.lua` file being executed.  The full Lua language is able to
+be used from `projects.lua`, though it should be kept simple.  The
+**search** command is intended to be as fast as possible (the whole
+point of qgrep!), and will run without interpreting the `projects.lua`
+file. 
 
-### Example
+### Example projects.lua file
 
     Project{"linux", 
         track("~/source/linux-2.6", "\\.c$", "\\.h$"),
@@ -52,7 +54,7 @@ the `projects.lua` file.
   number of **track** or **ignore** entries after the name of the
   project.
 
-**track(path, patterns...)** tells igrep to add *path* to the project,
+**track(path, patterns...)** tells qgrep to add *path* to the project,
   and will recursively add all subdirectories.  *patterns* is a list
   of regular expression patterns, any files under path that match any
   pattern will be added.  In the example, we wish to add any file that
@@ -63,7 +65,7 @@ the `projects.lua` file.
   that `.` will be matched as the period character rather than the
   usual regex meaning of ". means match any character"
 
-**ignore(patterns...)** tells igrep to ignore files that match any
+**ignore(patterns...)** tells qgrep to ignore files that match any
   pattern.  There can be multiple ignore entries.  In our example, any
   filename that contains the pattern "f.o" will be ignored.  Also any
   file that is exactly named "bar.c" will be ignored.  The exactness
@@ -86,41 +88,41 @@ string "NotFound_", and takes 27 seconds:
        user 0m5.991s 
        sys 0m18.970s
 
-In comparison, searching with igrep takes 2.2 seconds - more than 10
+In comparison, searching with qgrep takes 2.2 seconds - more than 10
 times faster
 
-      $ time igrep search linux NotFound_
+      $ time qgrep search linux NotFound_
        real 0m2.211s 
        user 0m3.035s 
        sys 0m0.142s 
        
-igrep does need to pay a cost to generate its internal database, but
+qgrep does need to pay a cost to generate its internal database, but
 that cost is roughly similar to doing a single search with find/grep
 
-     $ time igrep build linux 
+     $ time qgrep build linux 
      Building linux, may take some time Added
      26425 files to archive Done building
      real 0m25.307s 
      user 0m21.153s 
      sys 0m1.257s
      
-## Please Donate!
-If you find igrep to be useful a donation would be excellent
-motivation for me to make further improvements (such as much improved
-multicore support!).  
-If total donations exceed $1000 Canadian dollars, I will release
-igrep under a permissive licence like BSD.  
+## Etc
+qgrep was written by Brad Beveridge, if you find qgrep to be useful a
+donation would be excellent motivation for me to make further
+improvements (such as much improved multicore support!). If total
+donations exceed $1000 Canadian dollars, I will release qgrep under a
+permissive licence like BSD.   
 
 <!-- begin:html -->
 *PAY PAL DONATE BUTTON HERE*
 <!-- end:html -->
 <!-- begin:txt -->
-LINK TO PAYPAL AREA
+This readme and a Paypal donate button can be found at www.qgrep.com
 <!-- end:txt -->
 
 
 ## Credits 
-igrep uses the following libraries, many thanks to the authors
+qgrep uses the following libraries, many thanks to their authors
 
 - [RE2](http://code.google.com/p/re2/) provides the regular expression
 code used for matching
@@ -128,7 +130,7 @@ code used for matching
 used for compressing and decompressing the search material
 - [PThreads-w32](http://sourceware.org/pthreads-win32/) provides
 threading on Windows
-- [Lua](http://www.lua.org/); much of the functionality of igrep is
-programmed in Lua.
-
+- [Pigz](http://www.zlib.net/pigz/) provided pthread interfacing
+- [Lua](http://www.lua.org/) is the programming language for much of
+qgrep
 

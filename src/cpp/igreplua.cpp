@@ -105,20 +105,20 @@ int lua_NewTable(lua_State* L)
 	lua_push##valueType(L, (value));		\
 	lua_settable(L, (table)); }
 
-void GetIgrepPath(char* buffer)
+void GetQgrepPath(char* buffer)
 {
     char* home = getenv("HOME");
 #ifdef WIN32
     if (home)
     {
-	sprintf(buffer, "%s/.igrep", home);
+	sprintf(buffer, "%s/.qgrep", home);
     }
     else
     {
-	sprintf(buffer, "%s%s/.igrep", getenv("HOMEDRIVE"), getenv("HOMEPATH"));
+	sprintf(buffer, "%s%s/.qgrep", getenv("HOMEDRIVE"), getenv("HOMEPATH"));
     }
 #else
-    sprintf(buffer, "%s/.igrep", home);
+    sprintf(buffer, "%s/.qgrep", home);
 #endif
 }
 
@@ -271,12 +271,12 @@ int C_waitForKeypress(lua_State* L)
 #endif
 }
 
-// Gets the igrep path base
+// Gets the qgrep path base
 // (nil) -> string
-int C_igreppath(lua_State* L)
+int C_qgreppath(lua_State* L)
 {
     char buf[1024];
-    GetIgrepPath(buf);
+    GetQgrepPath(buf);
     lua_pushstring(L, buf);
     return 1;
 };
@@ -405,10 +405,19 @@ int C_isVerbose(lua_State* L)
     return 1;
 }
 
+int C_mkdir(lua_State* L)
+{
+    const char* dirname = luaL_checkstring(L,1);
+    int ret = mkdir(dirname, 0777);
+    lua_pushinteger(L, ret);
+    return 1;
+}
+
 luaL_Reg luaFunctions[] =
 {
     { "regex", C_re2_compile },
-    { "igreppath", C_igreppath },
+    { "mkdir", C_mkdir },
+    { "qgreppath", C_qgreppath },
     { "fileexists", C_fileexists },
     { "walkdir", C_walkdir },
     { "walkdir_next", C_walkdir_next },
@@ -534,7 +543,7 @@ bool StrStartsWith(const char* str, const char* startsWith)
 char* GetProjectFileName(char* buffer, const char* project)
 {
     char buf[1024];
-    GetIgrepPath(buf);
+    GetQgrepPath(buf);
     sprintf(buffer, "%s/%s.tgz", buf, project);
     return buffer;
 }
@@ -569,7 +578,7 @@ void FastPathSearch(int argc, const char** argv, bool searchFileNames = false)
     {
 	lua_ProjectExistsOrDie(project);
 	printf("Project is registered, but archive does not exist.\n");
-	printf("Run 'igrep build %s' to generate archive\n", project);
+	printf("Run 'qgrep build %s' to generate archive\n", project);
     }
 }
 

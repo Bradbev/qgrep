@@ -2,13 +2,13 @@ BASE = ../../packages
 
 ARCHIVE = $(BASE)/libarchive-2.8.4
 INCLUDES = -I$(ARCHIVE)/libarchive/ -I../simplefilewatcher/include/
-LIBDIR = -L$(ARCHIVE)/.libs/ 
-LIBS = $(LIBDIR) -larchive -lre2 $(BASE)/libs_osx/liblua.a
+LIBDIR = $(BASE)/libs_osx
+LIBS = $(LIBDIR)/libarchive.a $(LIBDIR)/liblua.a $(LIBDIR)/libre2.a -lbz2 -lz
 
 IGREP_SRCS = archive.cpp stream.cpp
 IGREP_OBJS = $(IGREP_SRCS:.cpp=.o) yarn.o
 
-CFLAGS = -O3 -g -Wall -Werror -fPIC $(INCLUDES) $(DIST_OPTS) -mmacosx-version-min=10.4
+CFLAGS = -O3 -g -Wall -Werror -fPIC $(INCLUDES) $(DIST_OPTS) -mmacosx-version-min=10.5
 CPPFLAGS = $(CFLAGS)
 
 all: libigrep.dylib igrepll igreplua
@@ -38,7 +38,7 @@ igreplua.bin.h: igrep.lua
 dist: clean 
 	make igreplua.bin.h 
 	DIST_OPTS=-DEMBED_BINARY make all
-	cp igreplua $(DIST_DIR)/igrep
+	cp igreplua $(DIST_DIR)/qgrep
 	
 
 .PHONY: dist

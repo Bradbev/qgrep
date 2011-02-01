@@ -1,3 +1,15 @@
+* TASKS
+:PROPERTIES:
+:ID: Tasks  
+:COLUMNS: %70ITEM(Task) %5EstDays{+} %5CompletedDays{+} %5OverHang{+}
+:END:  
+** Build all libs for 10.4  
+*** Libre2     :PROPERTIES:     :EstDays:  1     :CompletedDays: 1     :END:   
+*** Libarchive     :PROPERTIES:     :EstDays:  1     :CompletedDays: 1     :END:
+*** Liblua     :PROPERTIES:     :EstDays:  1     :CompletedDays: 1     :END:
+*** Libz, libbz     :PROPERTIES:     :EstDays:  1     :END:    
+
+   
 * Rethinking Instagrep
  - Compression and decompression are the high performance parts
  - Quick startup.  Either server or C
@@ -73,7 +85,7 @@ Searcher
 - start-service
 - stop-service
   
-* Plan [7/12]
+* Plan [7/13]
   - [X] Build a use-case project & use daily
   - [X] hook grep commands to use-case project
   - [X] setup win dev environment (local with parallels?)
@@ -90,6 +102,8 @@ Searcher
 	- Apparently lock free stream make 0 difference!
 	- Spin waiting on read block
 	- TIME TO PROFILE!!
+  - [X] You might want to grab the path environment var and append the igrep directory on there.
+  - [ ] Quick readme on search parameters and options
 	
 * Python sucks for scripting :(
 Python was really good for getting up and running, but it's not good for distributing

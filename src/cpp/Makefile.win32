@@ -41,6 +41,6 @@ igreplua.bin.h: igrep.lua
 dist: clean
 	make igreplua.bin.h 
 	DIST_OPTS=-DEMBED_BINARY make all
-	cp igreplua.exe $(DIST_DIR)/igrep.exe
+	cp igreplua.exe $(DIST_DIR)/qgrep.exe
 	
 .PHONY: dist
