@@ -297,6 +297,7 @@ function usage()
 end
 
 function GetProjectOrDie(projectName)
+   projectName = projectName or ""
    local project = gProjects[projectName]
    if not project then
       print("Unknown project " .. projectName)

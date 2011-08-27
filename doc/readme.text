@@ -2,26 +2,28 @@
 Super fast full text grep for programmers
 
 -----------------------
+## NEWS!
+qgrep is now free and can be found on [github](https://github.com/Bradbev/qgrep) under a BSD license.
 
 ## Introduction 
 Programmers commonly need to search code, faster searching makes for
-increased productivity. qgrep is significantly faster than search tools
-that don't build a database and is very easy to setup - simple
+increased productivity. qgrep can be significantly faster than search 
+tools that don't build a database and is very easy to setup - simple
 projects need only a couple of lines of configuration.  
 qgrep runs on OS X and Windows, with a Linux port coming soon.
 
 ## Installation 
 
 ### OSX
+[Download](http://www.qgrep.com/qgrep-osx.tgz) and extract to a directory of your choice.  
 Currently qgrep runs on OSX 10.5 or later on a 64bit Intel system.
-[Download](qgrep-osx.tgz) and extract to a directory of your choice.  
 
 ### Linux 
 Coming soon, please email <brad@qgrep.com> to express your
 interest.
 
 ### Windows 
-[Download](setup) and run the Windows installer.
+[Download](http://www.qgrep.com/setup.exe) and run the Windows installer.
 
 ## Configuration and Usage 
 qgrep expects to find a configuration file in a specific place.  For
@@ -69,43 +71,83 @@ file.
   pattern.  There can be multiple ignore entries.  In our example, any
   filename that contains the pattern "f.o" will be ignored.  Also any
   file that is exactly named "bar.c" will be ignored.  The exactness
-  is because the pattern is surrouded by `^` and `$`.  The second
+  is because the pattern is surrounded by `^` and `$`.  The second
   ignore pattern will never be matched because filenames are tested
   with their full path, ie all files will start with
   `~/source/linux-2.6/` 
 
 ## Benchmarks 
-All benchmarks were taken on my MacBook Pro, which has a 2.26 Core Duo
-CPU and a 5400rpm HDD. I am searching for a text string that is not in
-the target corpus, this gives a good picture of 'worst case'
-performance and how quickly the entire corpus can be searched.
+Benchmarks are a funny thing at the best of times, and even more so when you 
+add in the filesystem caching layer.  I have tested OSX and Windows with
+both hot and cold caches.  qgrep performs about the same with either a 
+hot or cold cache.  find/grep performs much better with a hot cache, and
+on OSX can actually do better than qgrep.  qgrep on Windows is always faster
+than Cygwin's find/grep.  qgrep will function best in an environment that 
+often has a cold cache.  My personal use case is 8 million lines of code
+on a Windows machine that often runs a high IO load under heavy memory pressure.
+The IO and memory pressure comes from compiling those 8 million lines!
+qgrep runs very well in that scenario, still being able to search quickly while
+compiling and linking.
+The benchmarks show searching all source & header files in linux-2.6, 26000 
+files in almost 10 million lines of code.
 
-The first timing is using regular find & grep to search for the text
-string "NotFound_", and takes 27 seconds:
+### Windows
+The first three benchmarks show find/grep and the impact of Windows' file
+caching layer.
 
-       $ time find . -iname "*.c" -or -iname "*.h" -exec grep NotFound_ {} \; 
-       real 0m27.173s 
-       user 0m5.991s 
-       sys 0m18.970s
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real    2m57.219s
+    user    0m6.922s
+    sys     0m14.192s
 
-In comparison, searching with qgrep takes 2.2 seconds - more than 10
-times faster
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real    0m10.985s
+    user    0m6.395s
+    sys     0m10.979s
 
-      $ time qgrep search linux NotFound_
-       real 0m2.211s 
-       user 0m3.035s 
-       sys 0m0.142s 
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real    0m11.078s
+    user    0m6.704s
+    sys     0m10.773s
+    
+qgrep is much faster in both the hot and cold cache case.    
+
+    $ time qgrep.exe search linux NotFound_
+    real    0m5.485s
+    user    0m0.015s
+    sys     0m0.015s
+
+    $ time qgrep.exe search linux NotFound_
+    real    0m2.453s
+    user    0m0.015s
+    sys     0m0.000s
+
+### OS X
+The first run is with cold file caches, the next two runs show that OS X 
+does a good job with file caching.  With hot caches, find/grep beats qgrep!
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real	0m25.590s
+    user	0m0.862s
+    sys	0m3.742s
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real	0m7.667s
+    user	0m0.674s
+    sys	0m1.151s
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real	0m1.211s
+    user	0m0.627s
+    sys	0m0.593s
+
+qgrep runs in the same amount of time with hot or cold file system caches.
+    
+    $ time qgrep search linux NotFound_
+    real 0m2.211s 
+    user 0m3.035s 
+    sys 0m0.142s 
        
-qgrep does need to pay a cost to generate its internal database, but
-that cost is roughly similar to doing a single search with find/grep
-
-     $ time qgrep build linux 
-     Building linux, may take some time Added
-     26425 files to archive Done building
-     real 0m25.307s 
-     user 0m21.153s 
-     sys 0m1.257s
-     
 ## Etc
 qgrep was written by Brad Beveridge, if you find qgrep to be useful a
 donation would be excellent motivation for me to make further
@@ -114,7 +156,14 @@ donations exceed $1000 Canadian dollars, I will release qgrep under a
 permissive licence like BSD.   
 
 <!-- begin:html -->
-*PAY PAL DONATE BUTTON HERE*
+<form action="https://www.paypal.com/cgi-bin/webscr" method="post">
+<input type="hidden" name="cmd" value="_s-xclick">
+<input type="hidden" name="encrypted" value="-----BEGIN PKCS7-----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-----END PKCS7-----
+">
+<input type="image" src="https://www.paypal.com/en_US/i/btn/btn_donateCC_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
+<img alt="" border="0" src="https://www.paypal.com/en_US/i/scr/pixel.gif" width="1" height="1">
+</form>
+
 <!-- end:html -->
 <!-- begin:txt -->
 This readme and a Paypal donate button can be found at www.qgrep.com
