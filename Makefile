@@ -14,9 +14,10 @@ installer: dist
 .PHONY: installer
 endif
 
-upload: installer
+upload: docs
 	ftp -u qgrepco1@qgrep.com:/www/index.html doc/html/readme.html
-	ftp -u qgrepco1@qgrep.com:/www/qgrep-osx.tgz installer/osx/qgrep-osx.tgz
+	#ftp -u qgrepco1@qgrep.com:/www/qgrep-osx.tgz installer/osx/qgrep-osx.tgz
+	#ftp -u qgrepco1@qgrep.com:/www/setup.exe installer/win32/setup.exe
 ####################################################
 
 ######################## Win32/MINGW specific
@@ -44,7 +45,7 @@ endif
 export BASE_DIR = $(PWD)
 export DIST_DIR = $(PWD)/dist/$(PLATFORM)
 
-dist: docs
+dist: 
 	rm -rf $(DIST_DIR)
 	mkdir -p $(DIST_DIR)
 	make -C src/cpp dist

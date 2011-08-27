@@ -1042,3 +1042,1963 @@ threading on Windows
 - [Lua](http://www.lua.org/) is the programming language for much of
 qgrep
 
+# qgrep (Quick Grep)
+Super fast full text grep for programmers
+
+-----------------------
+
+## Introduction 
+Programmers commonly need to search code, faster searching makes for
+increased productivity. qgrep is significantly faster than search tools
+that don't build a database and is very easy to setup - simple
+projects need only a couple of lines of configuration.  
+qgrep runs on OS X and Windows, with a Linux port coming soon.
+
+## Installation 
+
+### OSX
+Currently qgrep runs on OSX 10.5 or later on a 64bit Intel system.
+[Download](qgrep-osx.tgz) and extract to a directory of your choice.  
+
+### Linux 
+Coming soon, please email <brad@qgrep.com> to express your
+interest.
+
+### Windows 
+[Download](setup.exe) and run the Windows installer.
+
+## Configuration and Usage 
+qgrep expects to find a configuration file in a specific place.  For
+*nix systems the file is `~/.qgrep/projects.lua`
+
+For Windows the file is `$(HOME)/.qgrep/projects.lua` if it exists, or
+`$(HOMEDRIVE)$(HOMEPATH)/.qgrep/projects.lua` otherwise.
+
+If the projects.lua file cannot be found, qgrep will offer to create
+the expected directory and config file. A large part of qgrep's
+functionality is written in Lua, and Lua is also used for project
+configuration.  Every qgrep command except **search** results in the
+`projects.lua` file being executed.  The full Lua language is able to
+be used from `projects.lua`, though it should be kept simple.  The
+**search** command is intended to be as fast as possible (the whole
+point of qgrep!), and will run without interpreting the `projects.lua`
+file. 
+
+### Example projects.lua file
+
+    Project{"linux", 
+        track("~/source/linux-2.6", "\\.c$", "\\.h$"),
+        ignore("f.o", "^bar\\.c$") 
+    }
+
+**Project** is a Lua function that accepts a table as its only
+  argument, the table should be a comma seperated list within {}.
+  The first element in the table *must* be a string and is used to
+  name the project, "linux" in our example case.  There can be any
+  number of **track** or **ignore** entries after the name of the
+  project.
+
+**track(path, patterns...)** tells qgrep to add *path* to the project,
+  and will recursively add all subdirectories.  *patterns* is a list
+  of regular expression patterns, any files under path that match any
+  pattern will be added.  In the example, we wish to add any file that
+  ends in '.c' or '.h'.  You can have any number of patterns after the
+  path entry. Having no patterns will result in all files being
+  added.  Because the project file is just Lua code, backslashes must
+  be escaped.  In the above example `\\.c` becomes the regex `\.c`, so
+  that `.` will be matched as the period character rather than the
+  usual regex meaning of ". means match any character"
+
+**ignore(patterns...)** tells qgrep to ignore files that match any
+  pattern.  There can be multiple ignore entries.  In our example, any
+  filename that contains the pattern "f.o" will be ignored.  Also any
+  file that is exactly named "bar.c" will be ignored.  The exactness
+  is because the pattern is surrouded by `^` and `$`.  The second
+  ignore pattern will never be matched because filenames are tested
+  with their full path, ie all files will start with
+  `~/source/linux-2.6/` 
+
+## Benchmarks 
+All benchmarks were taken on my MacBook Pro, which has a 2.26 Core Duo
+CPU and a 5400rpm HDD. I am searching for a text string that is not in
+the target corpus, this gives a good picture of 'worst case'
+performance and how quickly the entire corpus can be searched.
+
+The first timing is using regular find & grep to search for the text
+string "NotFound_", and takes 27 seconds:
+
+       $ time find . -iname "*.c" -or -iname "*.h" -exec grep NotFound_ {} \; 
+       real 0m27.173s 
+       user 0m5.991s 
+       sys 0m18.970s
+
+In comparison, searching with qgrep takes 2.2 seconds - more than 10
+times faster
+
+      $ time qgrep search linux NotFound_
+       real 0m2.211s 
+       user 0m3.035s 
+       sys 0m0.142s 
+       
+qgrep does need to pay a cost to generate its internal database, but
+that cost is roughly similar to doing a single search with find/grep
+
+     $ time qgrep build linux 
+     Building linux, may take some time Added
+     26425 files to archive Done building
+     real 0m25.307s 
+     user 0m21.153s 
+     sys 0m1.257s
+     
+## Etc
+qgrep was written by Brad Beveridge, if you find qgrep to be useful a
+donation would be excellent motivation for me to make further
+improvements (such as much improved multicore support!). If total
+donations exceed $1000 Canadian dollars, I will release qgrep under a
+permissive licence like BSD.   
+
+This readme and a Paypal donate button can be found at www.qgrep.com
+
+
+## Credits 
+qgrep uses the following libraries, many thanks to their authors
+
+- [RE2](http://code.google.com/p/re2/) provides the regular expression
+code used for matching
+- [libarchive](http://code.google.com/p/libarchive/) provides the code
+used for compressing and decompressing the search material
+- [PThreads-w32](http://sourceware.org/pthreads-win32/) provides
+threading on Windows
+- [Pigz](http://www.zlib.net/pigz/) provided pthread interfacing
+- [Lua](http://www.lua.org/) is the programming language for much of
+qgrep
+
+# qgrep (Quick Grep)
+Super fast full text grep for programmers
+
+-----------------------
+
+## Introduction 
+Programmers commonly need to search code, faster searching makes for
+increased productivity. qgrep is significantly faster than search tools
+that don't build a database and is very easy to setup - simple
+projects need only a couple of lines of configuration.  
+qgrep runs on OS X and Windows, with a Linux port coming soon.
+
+## Installation 
+
+### OSX
+Currently qgrep runs on OSX 10.5 or later on a 64bit Intel system.
+[Download](www.qgrep.com/qgrep-osx.tgz) and extract to a directory of your choice.  
+
+### Linux 
+Coming soon, please email <brad@qgrep.com> to express your
+interest.
+
+### Windows 
+[Download](www.qgrep.com/setup.exe) and run the Windows installer.
+
+## Configuration and Usage 
+qgrep expects to find a configuration file in a specific place.  For
+*nix systems the file is `~/.qgrep/projects.lua`
+
+For Windows the file is `$(HOME)/.qgrep/projects.lua` if it exists, or
+`$(HOMEDRIVE)$(HOMEPATH)/.qgrep/projects.lua` otherwise.
+
+If the projects.lua file cannot be found, qgrep will offer to create
+the expected directory and config file. A large part of qgrep's
+functionality is written in Lua, and Lua is also used for project
+configuration.  Every qgrep command except **search** results in the
+`projects.lua` file being executed.  The full Lua language is able to
+be used from `projects.lua`, though it should be kept simple.  The
+**search** command is intended to be as fast as possible (the whole
+point of qgrep!), and will run without interpreting the `projects.lua`
+file. 
+
+### Example projects.lua file
+
+    Project{"linux", 
+        track("~/source/linux-2.6", "\\.c$", "\\.h$"),
+        ignore("f.o", "^bar\\.c$") 
+    }
+
+**Project** is a Lua function that accepts a table as its only
+  argument, the table should be a comma seperated list within {}.
+  The first element in the table *must* be a string and is used to
+  name the project, "linux" in our example case.  There can be any
+  number of **track** or **ignore** entries after the name of the
+  project.
+
+**track(path, patterns...)** tells qgrep to add *path* to the project,
+  and will recursively add all subdirectories.  *patterns* is a list
+  of regular expression patterns, any files under path that match any
+  pattern will be added.  In the example, we wish to add any file that
+  ends in '.c' or '.h'.  You can have any number of patterns after the
+  path entry. Having no patterns will result in all files being
+  added.  Because the project file is just Lua code, backslashes must
+  be escaped.  In the above example `\\.c` becomes the regex `\.c`, so
+  that `.` will be matched as the period character rather than the
+  usual regex meaning of ". means match any character"
+
+**ignore(patterns...)** tells qgrep to ignore files that match any
+  pattern.  There can be multiple ignore entries.  In our example, any
+  filename that contains the pattern "f.o" will be ignored.  Also any
+  file that is exactly named "bar.c" will be ignored.  The exactness
+  is because the pattern is surrouded by `^` and `$`.  The second
+  ignore pattern will never be matched because filenames are tested
+  with their full path, ie all files will start with
+  `~/source/linux-2.6/` 
+
+## Benchmarks 
+All benchmarks were taken on my MacBook Pro, which has a 2.26 Core Duo
+CPU and a 5400rpm HDD. I am searching for a text string that is not in
+the target corpus, this gives a good picture of 'worst case'
+performance and how quickly the entire corpus can be searched.
+
+The first timing is using regular find & grep to search for the text
+string "NotFound_", and takes 27 seconds:
+
+       $ time find . -iname "*.c" -or -iname "*.h" -exec grep NotFound_ {} \; 
+       real 0m27.173s 
+       user 0m5.991s 
+       sys 0m18.970s
+
+In comparison, searching with qgrep takes 2.2 seconds - more than 10
+times faster
+
+      $ time qgrep search linux NotFound_
+       real 0m2.211s 
+       user 0m3.035s 
+       sys 0m0.142s 
+       
+qgrep does need to pay a cost to generate its internal database, but
+that cost is roughly similar to doing a single search with find/grep
+
+     $ time qgrep build linux 
+     Building linux, may take some time Added
+     26425 files to archive Done building
+     real 0m25.307s 
+     user 0m21.153s 
+     sys 0m1.257s
+     
+## Etc
+qgrep was written by Brad Beveridge, if you find qgrep to be useful a
+donation would be excellent motivation for me to make further
+improvements (such as much improved multicore support!). If total
+donations exceed $1000 Canadian dollars, I will release qgrep under a
+permissive licence like BSD.   
+
+This readme and a Paypal donate button can be found at www.qgrep.com
+
+
+## Credits 
+qgrep uses the following libraries, many thanks to their authors
+
+- [RE2](http://code.google.com/p/re2/) provides the regular expression
+code used for matching
+- [libarchive](http://code.google.com/p/libarchive/) provides the code
+used for compressing and decompressing the search material
+- [PThreads-w32](http://sourceware.org/pthreads-win32/) provides
+threading on Windows
+- [Pigz](http://www.zlib.net/pigz/) provided pthread interfacing
+- [Lua](http://www.lua.org/) is the programming language for much of
+qgrep
+
+# qgrep (Quick Grep)
+Super fast full text grep for programmers
+
+-----------------------
+
+## Introduction 
+Programmers commonly need to search code, faster searching makes for
+increased productivity. qgrep is significantly faster than search tools
+that don't build a database and is very easy to setup - simple
+projects need only a couple of lines of configuration.  
+qgrep runs on OS X and Windows, with a Linux port coming soon.
+
+## Installation 
+
+### OSX
+[Download](http://www.qgrep.com/qgrep-osx.tgz) and extract to a directory of your choice.  
+Currently qgrep runs on OSX 10.5 or later on a 64bit Intel system.
+
+### Linux 
+Coming soon, please email <brad@qgrep.com> to express your
+interest.
+
+### Windows 
+[Download](http://www.qgrep.com/setup.exe) and run the Windows installer.
+
+## Configuration and Usage 
+qgrep expects to find a configuration file in a specific place.  For
+*nix systems the file is `~/.qgrep/projects.lua`
+
+For Windows the file is `$(HOME)/.qgrep/projects.lua` if it exists, or
+`$(HOMEDRIVE)$(HOMEPATH)/.qgrep/projects.lua` otherwise.
+
+If the projects.lua file cannot be found, qgrep will offer to create
+the expected directory and config file. A large part of qgrep's
+functionality is written in Lua, and Lua is also used for project
+configuration.  Every qgrep command except **search** results in the
+`projects.lua` file being executed.  The full Lua language is able to
+be used from `projects.lua`, though it should be kept simple.  The
+**search** command is intended to be as fast as possible (the whole
+point of qgrep!), and will run without interpreting the `projects.lua`
+file. 
+
+### Example projects.lua file
+
+    Project{"linux", 
+        track("~/source/linux-2.6", "\\.c$", "\\.h$"),
+        ignore("f.o", "^bar\\.c$") 
+    }
+
+**Project** is a Lua function that accepts a table as its only
+  argument, the table should be a comma seperated list within {}.
+  The first element in the table *must* be a string and is used to
+  name the project, "linux" in our example case.  There can be any
+  number of **track** or **ignore** entries after the name of the
+  project.
+
+**track(path, patterns...)** tells qgrep to add *path* to the project,
+  and will recursively add all subdirectories.  *patterns* is a list
+  of regular expression patterns, any files under path that match any
+  pattern will be added.  In the example, we wish to add any file that
+  ends in '.c' or '.h'.  You can have any number of patterns after the
+  path entry. Having no patterns will result in all files being
+  added.  Because the project file is just Lua code, backslashes must
+  be escaped.  In the above example `\\.c` becomes the regex `\.c`, so
+  that `.` will be matched as the period character rather than the
+  usual regex meaning of ". means match any character"
+
+**ignore(patterns...)** tells qgrep to ignore files that match any
+  pattern.  There can be multiple ignore entries.  In our example, any
+  filename that contains the pattern "f.o" will be ignored.  Also any
+  file that is exactly named "bar.c" will be ignored.  The exactness
+  is because the pattern is surrouded by `^` and `$`.  The second
+  ignore pattern will never be matched because filenames are tested
+  with their full path, ie all files will start with
+  `~/source/linux-2.6/` 
+
+## Benchmarks 
+All benchmarks were taken on my MacBook Pro, which has a 2.26 Core Duo
+CPU and a 5400rpm HDD. I am searching for a text string that is not in
+the target corpus, this gives a good picture of 'worst case'
+performance and how quickly the entire corpus can be searched.
+
+The first timing is using regular find & grep to search for the text
+string "NotFound_", and takes 27 seconds:
+
+       $ time find . -iname "*.c" -or -iname "*.h" -exec grep NotFound_ {} \; 
+       real 0m27.173s 
+       user 0m5.991s 
+       sys 0m18.970s
+
+In comparison, searching with qgrep takes 2.2 seconds - more than 10
+times faster
+
+      $ time qgrep search linux NotFound_
+       real 0m2.211s 
+       user 0m3.035s 
+       sys 0m0.142s 
+       
+qgrep does need to pay a cost to generate its internal database, but
+that cost is roughly similar to doing a single search with find/grep
+
+     $ time qgrep build linux 
+     Building linux, may take some time Added
+     26425 files to archive Done building
+     real 0m25.307s 
+     user 0m21.153s 
+     sys 0m1.257s
+     
+## Etc
+qgrep was written by Brad Beveridge, if you find qgrep to be useful a
+donation would be excellent motivation for me to make further
+improvements (such as much improved multicore support!). If total
+donations exceed $1000 Canadian dollars, I will release qgrep under a
+permissive licence like BSD.   
+
+This readme and a Paypal donate button can be found at www.qgrep.com
+
+
+## Credits 
+qgrep uses the following libraries, many thanks to their authors
+
+- [RE2](http://code.google.com/p/re2/) provides the regular expression
+code used for matching
+- [libarchive](http://code.google.com/p/libarchive/) provides the code
+used for compressing and decompressing the search material
+- [PThreads-w32](http://sourceware.org/pthreads-win32/) provides
+threading on Windows
+- [Pigz](http://www.zlib.net/pigz/) provided pthread interfacing
+- [Lua](http://www.lua.org/) is the programming language for much of
+qgrep
+
+# qgrep (Quick Grep)
+Super fast full text grep for programmers
+
+-----------------------
+
+## Introduction 
+Programmers commonly need to search code, faster searching makes for
+increased productivity. qgrep is significantly faster than search tools
+that don't build a database and is very easy to setup - simple
+projects need only a couple of lines of configuration.  
+qgrep runs on OS X and Windows, with a Linux port coming soon.
+
+## Installation 
+
+### OSX
+[Download](http://www.qgrep.com/qgrep-osx.tgz) and extract to a directory of your choice.  
+Currently qgrep runs on OSX 10.5 or later on a 64bit Intel system.
+
+### Linux 
+Coming soon, please email <brad@qgrep.com> to express your
+interest.
+
+### Windows 
+[Download](http://www.qgrep.com/setup.exe) and run the Windows installer.
+
+## Configuration and Usage 
+qgrep expects to find a configuration file in a specific place.  For
+*nix systems the file is `~/.qgrep/projects.lua`
+
+For Windows the file is `$(HOME)/.qgrep/projects.lua` if it exists, or
+`$(HOMEDRIVE)$(HOMEPATH)/.qgrep/projects.lua` otherwise.
+
+If the projects.lua file cannot be found, qgrep will offer to create
+the expected directory and config file. A large part of qgrep's
+functionality is written in Lua, and Lua is also used for project
+configuration.  Every qgrep command except **search** results in the
+`projects.lua` file being executed.  The full Lua language is able to
+be used from `projects.lua`, though it should be kept simple.  The
+**search** command is intended to be as fast as possible (the whole
+point of qgrep!), and will run without interpreting the `projects.lua`
+file. 
+
+### Example projects.lua file
+
+    Project{"linux", 
+        track("~/source/linux-2.6", "\\.c$", "\\.h$"),
+        ignore("f.o", "^bar\\.c$") 
+    }
+
+**Project** is a Lua function that accepts a table as its only
+  argument, the table should be a comma seperated list within {}.
+  The first element in the table *must* be a string and is used to
+  name the project, "linux" in our example case.  There can be any
+  number of **track** or **ignore** entries after the name of the
+  project.
+
+**track(path, patterns...)** tells qgrep to add *path* to the project,
+  and will recursively add all subdirectories.  *patterns* is a list
+  of regular expression patterns, any files under path that match any
+  pattern will be added.  In the example, we wish to add any file that
+  ends in '.c' or '.h'.  You can have any number of patterns after the
+  path entry. Having no patterns will result in all files being
+  added.  Because the project file is just Lua code, backslashes must
+  be escaped.  In the above example `\\.c` becomes the regex `\.c`, so
+  that `.` will be matched as the period character rather than the
+  usual regex meaning of ". means match any character"
+
+**ignore(patterns...)** tells qgrep to ignore files that match any
+  pattern.  There can be multiple ignore entries.  In our example, any
+  filename that contains the pattern "f.o" will be ignored.  Also any
+  file that is exactly named "bar.c" will be ignored.  The exactness
+  is because the pattern is surrounded by `^` and `$`.  The second
+  ignore pattern will never be matched because filenames are tested
+  with their full path, ie all files will start with
+  `~/source/linux-2.6/` 
+
+## Benchmarks 
+All benchmarks were taken on my MacBook Pro, which has a 2.26 Core Duo
+CPU and a 5400rpm HDD. I am searching for a text string that is not in
+the target corpus, this gives a good picture of 'worst case'
+performance and how quickly the entire corpus can be searched.
+
+The first timing is using regular find & grep to search for the text
+string "NotFound_", and takes 27 seconds:
+
+       $ time find . -iname "*.c" -or -iname "*.h" -exec grep NotFound_ {} \; 
+       real 0m27.173s 
+       user 0m5.991s 
+       sys 0m18.970s
+
+In comparison, searching with qgrep takes 2.2 seconds - more than 10
+times faster
+
+      $ time qgrep search linux NotFound_
+       real 0m2.211s 
+       user 0m3.035s 
+       sys 0m0.142s 
+       
+qgrep does need to pay a cost to generate its internal database, but
+that cost is roughly similar to doing a single search with find/grep
+
+     $ time qgrep build linux 
+     Building linux, may take some time Added
+     26425 files to archive Done building
+     real 0m25.307s 
+     user 0m21.153s 
+     sys 0m1.257s
+     
+## Etc
+qgrep was written by Brad Beveridge, if you find qgrep to be useful a
+donation would be excellent motivation for me to make further
+improvements (such as much improved multicore support!). If total
+donations exceed $1000 Canadian dollars, I will release qgrep under a
+permissive licence like BSD.   
+
+This readme and a Paypal donate button can be found at www.qgrep.com
+
+
+## Credits 
+qgrep uses the following libraries, many thanks to their authors
+
+- [RE2](http://code.google.com/p/re2/) provides the regular expression
+code used for matching
+- [libarchive](http://code.google.com/p/libarchive/) provides the code
+used for compressing and decompressing the search material
+- [PThreads-w32](http://sourceware.org/pthreads-win32/) provides
+threading on Windows
+- [Pigz](http://www.zlib.net/pigz/) provided pthread interfacing
+- [Lua](http://www.lua.org/) is the programming language for much of
+qgrep
+
+# qgrep (Quick Grep)
+Super fast full text grep for programmers
+
+-----------------------
+
+## Introduction 
+Programmers commonly need to search code, faster searching makes for
+increased productivity. qgrep is significantly faster than search tools
+that don't build a database and is very easy to setup - simple
+projects need only a couple of lines of configuration.  
+qgrep runs on OS X and Windows, with a Linux port coming soon.
+
+## Installation 
+
+### OSX
+[Download](http://www.qgrep.com/qgrep-osx.tgz) and extract to a directory of your choice.  
+Currently qgrep runs on OSX 10.5 or later on a 64bit Intel system.
+
+### Linux 
+Coming soon, please email <brad@qgrep.com> to express your
+interest.
+
+### Windows 
+[Download](http://www.qgrep.com/setup.exe) and run the Windows installer.
+
+## Configuration and Usage 
+qgrep expects to find a configuration file in a specific place.  For
+*nix systems the file is `~/.qgrep/projects.lua`
+
+For Windows the file is `$(HOME)/.qgrep/projects.lua` if it exists, or
+`$(HOMEDRIVE)$(HOMEPATH)/.qgrep/projects.lua` otherwise.
+
+If the projects.lua file cannot be found, qgrep will offer to create
+the expected directory and config file. A large part of qgrep's
+functionality is written in Lua, and Lua is also used for project
+configuration.  Every qgrep command except **search** results in the
+`projects.lua` file being executed.  The full Lua language is able to
+be used from `projects.lua`, though it should be kept simple.  The
+**search** command is intended to be as fast as possible (the whole
+point of qgrep!), and will run without interpreting the `projects.lua`
+file. 
+
+### Example projects.lua file
+
+    Project{"linux", 
+        track("~/source/linux-2.6", "\\.c$", "\\.h$"),
+        ignore("f.o", "^bar\\.c$") 
+    }
+
+**Project** is a Lua function that accepts a table as its only
+  argument, the table should be a comma seperated list within {}.
+  The first element in the table *must* be a string and is used to
+  name the project, "linux" in our example case.  There can be any
+  number of **track** or **ignore** entries after the name of the
+  project.
+
+**track(path, patterns...)** tells qgrep to add *path* to the project,
+  and will recursively add all subdirectories.  *patterns* is a list
+  of regular expression patterns, any files under path that match any
+  pattern will be added.  In the example, we wish to add any file that
+  ends in '.c' or '.h'.  You can have any number of patterns after the
+  path entry. Having no patterns will result in all files being
+  added.  Because the project file is just Lua code, backslashes must
+  be escaped.  In the above example `\\.c` becomes the regex `\.c`, so
+  that `.` will be matched as the period character rather than the
+  usual regex meaning of ". means match any character"
+
+**ignore(patterns...)** tells qgrep to ignore files that match any
+  pattern.  There can be multiple ignore entries.  In our example, any
+  filename that contains the pattern "f.o" will be ignored.  Also any
+  file that is exactly named "bar.c" will be ignored.  The exactness
+  is because the pattern is surrounded by `^` and `$`.  The second
+  ignore pattern will never be matched because filenames are tested
+  with their full path, ie all files will start with
+  `~/source/linux-2.6/` 
+
+## Benchmarks 
+All benchmarks were taken on my MacBook Pro, which has a 2.26 Core Duo
+CPU and a 5400rpm HDD. I am searching for a text string that is not in
+the target corpus, this gives a good picture of 'worst case'
+performance and how quickly the entire corpus can be searched.
+
+The first timing is using regular find & grep to search for the text
+string "NotFound_", and takes 27 seconds:
+
+       $ time find . -iname "*.c" -or -iname "*.h" -exec grep NotFound_ {} \; 
+       real 0m27.173s 
+       user 0m5.991s 
+       sys 0m18.970s
+       
+Searching with [ack](http://betterthangrep.com/) is faster than regular grep
+       $ time ack --cc NotFound_
+       real	0m8.923s
+       user	0m7.491s
+       sys	0m1.279s
+
+But qgrep is the quickest - taking 2.2 seconds.  More than 10
+times faster than find/grep and still about 4 times faster than ack.
+
+      $ time qgrep search linux NotFound_
+       real 0m2.211s 
+       user 0m3.035s 
+       sys 0m0.142s 
+       
+qgrep does need to pay a cost to generate its internal database, but
+that cost is roughly similar to doing a single search with find/grep
+
+     $ time qgrep build linux 
+     Building linux, may take some time Added
+     26425 files to archive Done building
+     real 0m25.307s 
+     user 0m21.153s 
+     sys 0m1.257s
+     
+## Etc
+qgrep was written by Brad Beveridge, if you find qgrep to be useful a
+donation would be excellent motivation for me to make further
+improvements (such as much improved multicore support!). If total
+donations exceed $1000 Canadian dollars, I will release qgrep under a
+permissive licence like BSD.   
+
+This readme and a Paypal donate button can be found at www.qgrep.com
+
+
+## Credits 
+qgrep uses the following libraries, many thanks to their authors
+
+- [RE2](http://code.google.com/p/re2/) provides the regular expression
+code used for matching
+- [libarchive](http://code.google.com/p/libarchive/) provides the code
+used for compressing and decompressing the search material
+- [PThreads-w32](http://sourceware.org/pthreads-win32/) provides
+threading on Windows
+- [Pigz](http://www.zlib.net/pigz/) provided pthread interfacing
+- [Lua](http://www.lua.org/) is the programming language for much of
+qgrep
+
+# qgrep (Quick Grep)
+Super fast full text grep for programmers
+
+-----------------------
+
+## Introduction 
+Programmers commonly need to search code, faster searching makes for
+increased productivity. qgrep is significantly faster than search tools
+that don't build a database and is very easy to setup - simple
+projects need only a couple of lines of configuration.  
+qgrep runs on OS X and Windows, with a Linux port coming soon.
+
+## Installation 
+
+### OSX
+[Download](http://www.qgrep.com/qgrep-osx.tgz) and extract to a directory of your choice.  
+Currently qgrep runs on OSX 10.5 or later on a 64bit Intel system.
+
+### Linux 
+Coming soon, please email <brad@qgrep.com> to express your
+interest.
+
+### Windows 
+[Download](http://www.qgrep.com/setup.exe) and run the Windows installer.
+
+## Configuration and Usage 
+qgrep expects to find a configuration file in a specific place.  For
+*nix systems the file is `~/.qgrep/projects.lua`
+
+For Windows the file is `$(HOME)/.qgrep/projects.lua` if it exists, or
+`$(HOMEDRIVE)$(HOMEPATH)/.qgrep/projects.lua` otherwise.
+
+If the projects.lua file cannot be found, qgrep will offer to create
+the expected directory and config file. A large part of qgrep's
+functionality is written in Lua, and Lua is also used for project
+configuration.  Every qgrep command except **search** results in the
+`projects.lua` file being executed.  The full Lua language is able to
+be used from `projects.lua`, though it should be kept simple.  The
+**search** command is intended to be as fast as possible (the whole
+point of qgrep!), and will run without interpreting the `projects.lua`
+file. 
+
+### Example projects.lua file
+
+    Project{"linux", 
+        track("~/source/linux-2.6", "\\.c$", "\\.h$"),
+        ignore("f.o", "^bar\\.c$") 
+    }
+
+**Project** is a Lua function that accepts a table as its only
+  argument, the table should be a comma seperated list within {}.
+  The first element in the table *must* be a string and is used to
+  name the project, "linux" in our example case.  There can be any
+  number of **track** or **ignore** entries after the name of the
+  project.
+
+**track(path, patterns...)** tells qgrep to add *path* to the project,
+  and will recursively add all subdirectories.  *patterns* is a list
+  of regular expression patterns, any files under path that match any
+  pattern will be added.  In the example, we wish to add any file that
+  ends in '.c' or '.h'.  You can have any number of patterns after the
+  path entry. Having no patterns will result in all files being
+  added.  Because the project file is just Lua code, backslashes must
+  be escaped.  In the above example `\\.c` becomes the regex `\.c`, so
+  that `.` will be matched as the period character rather than the
+  usual regex meaning of ". means match any character"
+
+**ignore(patterns...)** tells qgrep to ignore files that match any
+  pattern.  There can be multiple ignore entries.  In our example, any
+  filename that contains the pattern "f.o" will be ignored.  Also any
+  file that is exactly named "bar.c" will be ignored.  The exactness
+  is because the pattern is surrounded by `^` and `$`.  The second
+  ignore pattern will never be matched because filenames are tested
+  with their full path, ie all files will start with
+  `~/source/linux-2.6/` 
+
+## Benchmarks 
+All benchmarks were taken on my MacBook Pro, which has a 2.26 Core Duo
+CPU and a 5400rpm HDD. I am searching for a text string that is not in
+the target corpus, this gives a good picture of 'worst case'
+performance and how quickly the entire corpus can be searched.
+
+The first timing is using regular find & grep to search for the text
+string "NotFound_", and takes 27 seconds:
+
+       $ time find . -iname "*.c" -or -iname "*.h" -exec grep NotFound_ {} \; 
+       real 0m27.173s 
+       user 0m5.991s 
+       sys 0m18.970s
+       
+Searching with [ack](http://betterthangrep.com/) is faster than regular grep
+
+       $ time ack --cc NotFound_
+       real	0m8.923s
+       user	0m7.491s
+       sys	0m1.279s
+
+But qgrep is the quickest - taking 2.2 seconds.  More than 10
+times faster than find/grep and still about 4 times faster than ack.
+
+      $ time qgrep search linux NotFound_
+      real 0m2.211s 
+      user 0m3.035s 
+      sys 0m0.142s 
+       
+qgrep does need to pay a cost to generate its internal database, but
+that cost is roughly similar to doing a single search with find/grep
+
+     $ time qgrep build linux 
+     Building linux, may take some time Added
+     26425 files to archive Done building
+     real 0m25.307s 
+     user 0m21.153s 
+     sys 0m1.257s
+     
+## Etc
+qgrep was written by Brad Beveridge, if you find qgrep to be useful a
+donation would be excellent motivation for me to make further
+improvements (such as much improved multicore support!). If total
+donations exceed $1000 Canadian dollars, I will release qgrep under a
+permissive licence like BSD.   
+
+This readme and a Paypal donate button can be found at www.qgrep.com
+
+
+## Credits 
+qgrep uses the following libraries, many thanks to their authors
+
+- [RE2](http://code.google.com/p/re2/) provides the regular expression
+code used for matching
+- [libarchive](http://code.google.com/p/libarchive/) provides the code
+used for compressing and decompressing the search material
+- [PThreads-w32](http://sourceware.org/pthreads-win32/) provides
+threading on Windows
+- [Pigz](http://www.zlib.net/pigz/) provided pthread interfacing
+- [Lua](http://www.lua.org/) is the programming language for much of
+qgrep
+
+# qgrep (Quick Grep)
+Super fast full text grep for programmers
+
+-----------------------
+
+## Introduction 
+Programmers commonly need to search code, faster searching makes for
+increased productivity. qgrep is significantly faster than search tools
+that don't build a database and is very easy to setup - simple
+projects need only a couple of lines of configuration.  
+qgrep runs on OS X and Windows, with a Linux port coming soon.
+
+## Installation 
+
+### OSX
+[Download](http://www.qgrep.com/qgrep-osx.tgz) and extract to a directory of your choice.  
+Currently qgrep runs on OSX 10.5 or later on a 64bit Intel system.
+
+### Linux 
+Coming soon, please email <brad@qgrep.com> to express your
+interest.
+
+### Windows 
+[Download](http://www.qgrep.com/setup.exe) and run the Windows installer.
+
+## Configuration and Usage 
+qgrep expects to find a configuration file in a specific place.  For
+*nix systems the file is `~/.qgrep/projects.lua`
+
+For Windows the file is `$(HOME)/.qgrep/projects.lua` if it exists, or
+`$(HOMEDRIVE)$(HOMEPATH)/.qgrep/projects.lua` otherwise.
+
+If the projects.lua file cannot be found, qgrep will offer to create
+the expected directory and config file. A large part of qgrep's
+functionality is written in Lua, and Lua is also used for project
+configuration.  Every qgrep command except **search** results in the
+`projects.lua` file being executed.  The full Lua language is able to
+be used from `projects.lua`, though it should be kept simple.  The
+**search** command is intended to be as fast as possible (the whole
+point of qgrep!), and will run without interpreting the `projects.lua`
+file. 
+
+### Example projects.lua file
+
+    Project{"linux", 
+        track("~/source/linux-2.6", "\\.c$", "\\.h$"),
+        ignore("f.o", "^bar\\.c$") 
+    }
+
+**Project** is a Lua function that accepts a table as its only
+  argument, the table should be a comma seperated list within {}.
+  The first element in the table *must* be a string and is used to
+  name the project, "linux" in our example case.  There can be any
+  number of **track** or **ignore** entries after the name of the
+  project.
+
+**track(path, patterns...)** tells qgrep to add *path* to the project,
+  and will recursively add all subdirectories.  *patterns* is a list
+  of regular expression patterns, any files under path that match any
+  pattern will be added.  In the example, we wish to add any file that
+  ends in '.c' or '.h'.  You can have any number of patterns after the
+  path entry. Having no patterns will result in all files being
+  added.  Because the project file is just Lua code, backslashes must
+  be escaped.  In the above example `\\.c` becomes the regex `\.c`, so
+  that `.` will be matched as the period character rather than the
+  usual regex meaning of ". means match any character"
+
+**ignore(patterns...)** tells qgrep to ignore files that match any
+  pattern.  There can be multiple ignore entries.  In our example, any
+  filename that contains the pattern "f.o" will be ignored.  Also any
+  file that is exactly named "bar.c" will be ignored.  The exactness
+  is because the pattern is surrounded by `^` and `$`.  The second
+  ignore pattern will never be matched because filenames are tested
+  with their full path, ie all files will start with
+  `~/source/linux-2.6/` 
+
+## Benchmarks 
+All benchmarks were taken on my MacBook Pro, which has a 2.26 Core Duo
+CPU and a 5400rpm HDD. I am searching for a text string that is not in
+the target corpus, this gives a good picture of 'worst case'
+performance and how quickly the entire corpus can be searched.
+
+The first timing is using regular find & grep to search for the text
+string "NotFound_", and takes 27 seconds:
+
+      $ time find . -iname "*.c" -or -iname "*.h" -exec grep NotFound_ {} \; 
+      real 0m27.173s 
+      user 0m5.991s 
+      sys 0m18.970s
+       
+Searching with [ack](http://betterthangrep.com/) is faster than regular grep
+
+      $ time ack --cc NotFound_
+      real	0m8.923s
+      user	0m7.491s
+      sys	0m1.279s
+
+But qgrep is the quickest - taking 2.2 seconds.  More than 10
+times faster than find/grep and still about 4 times faster than ack.
+
+      $ time qgrep search linux NotFound_
+      real 0m2.211s 
+      user 0m3.035s 
+      sys 0m0.142s 
+       
+qgrep does need to pay a cost to generate its internal database, but
+that cost is roughly similar to doing a single search with find/grep
+
+     $ time qgrep build linux 
+     Building linux, may take some time Added
+     26425 files to archive Done building
+     real 0m25.307s 
+     user 0m21.153s 
+     sys 0m1.257s
+     
+## Etc
+qgrep was written by Brad Beveridge, if you find qgrep to be useful a
+donation would be excellent motivation for me to make further
+improvements (such as much improved multicore support!). If total
+donations exceed $1000 Canadian dollars, I will release qgrep under a
+permissive licence like BSD.   
+
+This readme and a Paypal donate button can be found at www.qgrep.com
+
+
+## Credits 
+qgrep uses the following libraries, many thanks to their authors
+
+- [RE2](http://code.google.com/p/re2/) provides the regular expression
+code used for matching
+- [libarchive](http://code.google.com/p/libarchive/) provides the code
+used for compressing and decompressing the search material
+- [PThreads-w32](http://sourceware.org/pthreads-win32/) provides
+threading on Windows
+- [Pigz](http://www.zlib.net/pigz/) provided pthread interfacing
+- [Lua](http://www.lua.org/) is the programming language for much of
+qgrep
+
+# qgrep (Quick Grep)
+Super fast full text grep for programmers
+
+-----------------------
+
+## Introduction 
+Programmers commonly need to search code, faster searching makes for
+increased productivity. qgrep is significantly faster than search tools
+that don't build a database and is very easy to setup - simple
+projects need only a couple of lines of configuration.  
+qgrep runs on OS X and Windows, with a Linux port coming soon.
+
+## Installation 
+
+### OSX
+[Download](http://www.qgrep.com/qgrep-osx.tgz) and extract to a directory of your choice.  
+Currently qgrep runs on OSX 10.5 or later on a 64bit Intel system.
+
+### Linux 
+Coming soon, please email <brad@qgrep.com> to express your
+interest.
+
+### Windows 
+[Download](http://www.qgrep.com/setup.exe) and run the Windows installer.
+
+## Configuration and Usage 
+qgrep expects to find a configuration file in a specific place.  For
+*nix systems the file is `~/.qgrep/projects.lua`
+
+For Windows the file is `$(HOME)/.qgrep/projects.lua` if it exists, or
+`$(HOMEDRIVE)$(HOMEPATH)/.qgrep/projects.lua` otherwise.
+
+If the projects.lua file cannot be found, qgrep will offer to create
+the expected directory and config file. A large part of qgrep's
+functionality is written in Lua, and Lua is also used for project
+configuration.  Every qgrep command except **search** results in the
+`projects.lua` file being executed.  The full Lua language is able to
+be used from `projects.lua`, though it should be kept simple.  The
+**search** command is intended to be as fast as possible (the whole
+point of qgrep!), and will run without interpreting the `projects.lua`
+file. 
+
+### Example projects.lua file
+
+    Project{"linux", 
+        track("~/source/linux-2.6", "\\.c$", "\\.h$"),
+        ignore("f.o", "^bar\\.c$") 
+    }
+
+**Project** is a Lua function that accepts a table as its only
+  argument, the table should be a comma seperated list within {}.
+  The first element in the table *must* be a string and is used to
+  name the project, "linux" in our example case.  There can be any
+  number of **track** or **ignore** entries after the name of the
+  project.
+
+**track(path, patterns...)** tells qgrep to add *path* to the project,
+  and will recursively add all subdirectories.  *patterns* is a list
+  of regular expression patterns, any files under path that match any
+  pattern will be added.  In the example, we wish to add any file that
+  ends in '.c' or '.h'.  You can have any number of patterns after the
+  path entry. Having no patterns will result in all files being
+  added.  Because the project file is just Lua code, backslashes must
+  be escaped.  In the above example `\\.c` becomes the regex `\.c`, so
+  that `.` will be matched as the period character rather than the
+  usual regex meaning of ". means match any character"
+
+**ignore(patterns...)** tells qgrep to ignore files that match any
+  pattern.  There can be multiple ignore entries.  In our example, any
+  filename that contains the pattern "f.o" will be ignored.  Also any
+  file that is exactly named "bar.c" will be ignored.  The exactness
+  is because the pattern is surrounded by `^` and `$`.  The second
+  ignore pattern will never be matched because filenames are tested
+  with their full path, ie all files will start with
+  `~/source/linux-2.6/` 
+
+## Benchmarks 
+Benchmarks are a funny thing at the best of times, and even more so when you 
+add in the filesystem caching layer.  I have tested OSX and Windows with
+both hot and cold caches.  qgrep performs about the same with either a 
+hot or cold cache.  find/grep performs much better with a hot cache, and
+on OSX can actually do better than qgrep.  qgrep on Windows is always faster
+than Cygwin's find/grep.  qgrep will function best in an environment that 
+often has a cold cache.  My personal use case is 8 million lines of code
+on a Windows machine that often runs a high IO load, qgrep runs very well
+in that scenario.
+The benchmarks show searching all source & header files in linux-2.6, 26000 
+files in almost 10 million lines of code.
+
+### Windows
+The first three benchmarks show find/grep and the impact of Windows' file
+caching layer.
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real    2m57.219s
+    user    0m6.922s
+    sys     0m14.192s
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real    0m10.985s
+    user    0m6.395s
+    sys     0m10.979s
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real    0m11.078s
+    user    0m6.704s
+    sys     0m10.773s
+    
+qgrep is much faster in both the hot and cold cache case.    
+    $ time qgrep.exe search linux NotFound_
+    real    0m5.485s
+    user    0m0.015s
+    sys     0m0.015s
+
+    $ time qgrep.exe search linux NotFound_
+    real    0m2.453s
+    user    0m0.015s
+    sys     0m0.000s
+
+### OS X
+The first run is with cold file caches, the next two runs show that OS X 
+does a good job with file caching.  With hot caches, find/grep beats qgrep!
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real	0m25.590s
+    user	0m0.862s
+    sys	0m3.742s
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real	0m7.667s
+    user	0m0.674s
+    sys	0m1.151s
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real	0m1.211s
+    user	0m0.627s
+    sys	0m0.593s
+
+qgrep runs in the same amount of time with hot or cold file system caches.
+    
+    $ time qgrep search linux NotFound_
+    real 0m2.211s 
+    user 0m3.035s 
+    sys 0m0.142s 
+       
+## Etc
+qgrep was written by Brad Beveridge, if you find qgrep to be useful a
+donation would be excellent motivation for me to make further
+improvements (such as much improved multicore support!). If total
+donations exceed $1000 Canadian dollars, I will release qgrep under a
+permissive licence like BSD.   
+
+This readme and a Paypal donate button can be found at www.qgrep.com
+
+
+## Credits 
+qgrep uses the following libraries, many thanks to their authors
+
+- [RE2](http://code.google.com/p/re2/) provides the regular expression
+code used for matching
+- [libarchive](http://code.google.com/p/libarchive/) provides the code
+used for compressing and decompressing the search material
+- [PThreads-w32](http://sourceware.org/pthreads-win32/) provides
+threading on Windows
+- [Pigz](http://www.zlib.net/pigz/) provided pthread interfacing
+- [Lua](http://www.lua.org/) is the programming language for much of
+qgrep
+
+# qgrep (Quick Grep)
+Super fast full text grep for programmers
+
+-----------------------
+
+## Introduction 
+Programmers commonly need to search code, faster searching makes for
+increased productivity. qgrep can be significantly faster than search 
+tools that don't build a database and is very easy to setup - simple
+projects need only a couple of lines of configuration.  
+qgrep runs on OS X and Windows, with a Linux port coming soon.
+
+## Installation 
+
+### OSX
+[Download](http://www.qgrep.com/qgrep-osx.tgz) and extract to a directory of your choice.  
+Currently qgrep runs on OSX 10.5 or later on a 64bit Intel system.
+
+### Linux 
+Coming soon, please email <brad@qgrep.com> to express your
+interest.
+
+### Windows 
+[Download](http://www.qgrep.com/setup.exe) and run the Windows installer.
+
+## Configuration and Usage 
+qgrep expects to find a configuration file in a specific place.  For
+*nix systems the file is `~/.qgrep/projects.lua`
+
+For Windows the file is `$(HOME)/.qgrep/projects.lua` if it exists, or
+`$(HOMEDRIVE)$(HOMEPATH)/.qgrep/projects.lua` otherwise.
+
+If the projects.lua file cannot be found, qgrep will offer to create
+the expected directory and config file. A large part of qgrep's
+functionality is written in Lua, and Lua is also used for project
+configuration.  Every qgrep command except **search** results in the
+`projects.lua` file being executed.  The full Lua language is able to
+be used from `projects.lua`, though it should be kept simple.  The
+**search** command is intended to be as fast as possible (the whole
+point of qgrep!), and will run without interpreting the `projects.lua`
+file. 
+
+### Example projects.lua file
+
+    Project{"linux", 
+        track("~/source/linux-2.6", "\\.c$", "\\.h$"),
+        ignore("f.o", "^bar\\.c$") 
+    }
+
+**Project** is a Lua function that accepts a table as its only
+  argument, the table should be a comma seperated list within {}.
+  The first element in the table *must* be a string and is used to
+  name the project, "linux" in our example case.  There can be any
+  number of **track** or **ignore** entries after the name of the
+  project.
+
+**track(path, patterns...)** tells qgrep to add *path* to the project,
+  and will recursively add all subdirectories.  *patterns* is a list
+  of regular expression patterns, any files under path that match any
+  pattern will be added.  In the example, we wish to add any file that
+  ends in '.c' or '.h'.  You can have any number of patterns after the
+  path entry. Having no patterns will result in all files being
+  added.  Because the project file is just Lua code, backslashes must
+  be escaped.  In the above example `\\.c` becomes the regex `\.c`, so
+  that `.` will be matched as the period character rather than the
+  usual regex meaning of ". means match any character"
+
+**ignore(patterns...)** tells qgrep to ignore files that match any
+  pattern.  There can be multiple ignore entries.  In our example, any
+  filename that contains the pattern "f.o" will be ignored.  Also any
+  file that is exactly named "bar.c" will be ignored.  The exactness
+  is because the pattern is surrounded by `^` and `$`.  The second
+  ignore pattern will never be matched because filenames are tested
+  with their full path, ie all files will start with
+  `~/source/linux-2.6/` 
+
+## Benchmarks 
+Benchmarks are a funny thing at the best of times, and even more so when you 
+add in the filesystem caching layer.  I have tested OSX and Windows with
+both hot and cold caches.  qgrep performs about the same with either a 
+hot or cold cache.  find/grep performs much better with a hot cache, and
+on OSX can actually do better than qgrep.  qgrep on Windows is always faster
+than Cygwin's find/grep.  qgrep will function best in an environment that 
+often has a cold cache.  My personal use case is 8 million lines of code
+on a Windows machine that often runs a high IO load, qgrep runs very well
+in that scenario.
+The benchmarks show searching all source & header files in linux-2.6, 26000 
+files in almost 10 million lines of code.
+
+### Windows
+The first three benchmarks show find/grep and the impact of Windows' file
+caching layer.
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real    2m57.219s
+    user    0m6.922s
+    sys     0m14.192s
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real    0m10.985s
+    user    0m6.395s
+    sys     0m10.979s
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real    0m11.078s
+    user    0m6.704s
+    sys     0m10.773s
+    
+qgrep is much faster in both the hot and cold cache case.    
+    $ time qgrep.exe search linux NotFound_
+    real    0m5.485s
+    user    0m0.015s
+    sys     0m0.015s
+
+    $ time qgrep.exe search linux NotFound_
+    real    0m2.453s
+    user    0m0.015s
+    sys     0m0.000s
+
+### OS X
+The first run is with cold file caches, the next two runs show that OS X 
+does a good job with file caching.  With hot caches, find/grep beats qgrep!
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real	0m25.590s
+    user	0m0.862s
+    sys	0m3.742s
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real	0m7.667s
+    user	0m0.674s
+    sys	0m1.151s
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real	0m1.211s
+    user	0m0.627s
+    sys	0m0.593s
+
+qgrep runs in the same amount of time with hot or cold file system caches.
+    
+    $ time qgrep search linux NotFound_
+    real 0m2.211s 
+    user 0m3.035s 
+    sys 0m0.142s 
+       
+## Etc
+qgrep was written by Brad Beveridge, if you find qgrep to be useful a
+donation would be excellent motivation for me to make further
+improvements (such as much improved multicore support!). If total
+donations exceed $1000 Canadian dollars, I will release qgrep under a
+permissive licence like BSD.   
+
+This readme and a Paypal donate button can be found at www.qgrep.com
+
+
+## Credits 
+qgrep uses the following libraries, many thanks to their authors
+
+- [RE2](http://code.google.com/p/re2/) provides the regular expression
+code used for matching
+- [libarchive](http://code.google.com/p/libarchive/) provides the code
+used for compressing and decompressing the search material
+- [PThreads-w32](http://sourceware.org/pthreads-win32/) provides
+threading on Windows
+- [Pigz](http://www.zlib.net/pigz/) provided pthread interfacing
+- [Lua](http://www.lua.org/) is the programming language for much of
+qgrep
+
+# qgrep (Quick Grep)
+Super fast full text grep for programmers
+
+-----------------------
+
+## Introduction 
+Programmers commonly need to search code, faster searching makes for
+increased productivity. qgrep can be significantly faster than search 
+tools that don't build a database and is very easy to setup - simple
+projects need only a couple of lines of configuration.  
+qgrep runs on OS X and Windows, with a Linux port coming soon.
+
+## Installation 
+
+### OSX
+[Download](http://www.qgrep.com/qgrep-osx.tgz) and extract to a directory of your choice.  
+Currently qgrep runs on OSX 10.5 or later on a 64bit Intel system.
+
+### Linux 
+Coming soon, please email <brad@qgrep.com> to express your
+interest.
+
+### Windows 
+[Download](http://www.qgrep.com/setup.exe) and run the Windows installer.
+
+## Configuration and Usage 
+qgrep expects to find a configuration file in a specific place.  For
+*nix systems the file is `~/.qgrep/projects.lua`
+
+For Windows the file is `$(HOME)/.qgrep/projects.lua` if it exists, or
+`$(HOMEDRIVE)$(HOMEPATH)/.qgrep/projects.lua` otherwise.
+
+If the projects.lua file cannot be found, qgrep will offer to create
+the expected directory and config file. A large part of qgrep's
+functionality is written in Lua, and Lua is also used for project
+configuration.  Every qgrep command except **search** results in the
+`projects.lua` file being executed.  The full Lua language is able to
+be used from `projects.lua`, though it should be kept simple.  The
+**search** command is intended to be as fast as possible (the whole
+point of qgrep!), and will run without interpreting the `projects.lua`
+file. 
+
+### Example projects.lua file
+
+    Project{"linux", 
+        track("~/source/linux-2.6", "\\.c$", "\\.h$"),
+        ignore("f.o", "^bar\\.c$") 
+    }
+
+**Project** is a Lua function that accepts a table as its only
+  argument, the table should be a comma seperated list within {}.
+  The first element in the table *must* be a string and is used to
+  name the project, "linux" in our example case.  There can be any
+  number of **track** or **ignore** entries after the name of the
+  project.
+
+**track(path, patterns...)** tells qgrep to add *path* to the project,
+  and will recursively add all subdirectories.  *patterns* is a list
+  of regular expression patterns, any files under path that match any
+  pattern will be added.  In the example, we wish to add any file that
+  ends in '.c' or '.h'.  You can have any number of patterns after the
+  path entry. Having no patterns will result in all files being
+  added.  Because the project file is just Lua code, backslashes must
+  be escaped.  In the above example `\\.c` becomes the regex `\.c`, so
+  that `.` will be matched as the period character rather than the
+  usual regex meaning of ". means match any character"
+
+**ignore(patterns...)** tells qgrep to ignore files that match any
+  pattern.  There can be multiple ignore entries.  In our example, any
+  filename that contains the pattern "f.o" will be ignored.  Also any
+  file that is exactly named "bar.c" will be ignored.  The exactness
+  is because the pattern is surrounded by `^` and `$`.  The second
+  ignore pattern will never be matched because filenames are tested
+  with their full path, ie all files will start with
+  `~/source/linux-2.6/` 
+
+## Benchmarks 
+Benchmarks are a funny thing at the best of times, and even more so when you 
+add in the filesystem caching layer.  I have tested OSX and Windows with
+both hot and cold caches.  qgrep performs about the same with either a 
+hot or cold cache.  find/grep performs much better with a hot cache, and
+on OSX can actually do better than qgrep.  qgrep on Windows is always faster
+than Cygwin's find/grep.  qgrep will function best in an environment that 
+often has a cold cache.  My personal use case is 8 million lines of code
+on a Windows machine that often runs a high IO load under heavy memory pressure.
+The IO and memory pressure comes from compiling those 8 million lines!
+qgrep runs very well in that scenario, still being able to search quickly while
+compiling and linking.
+The benchmarks show searching all source & header files in linux-2.6, 26000 
+files in almost 10 million lines of code.
+
+### Windows
+The first three benchmarks show find/grep and the impact of Windows' file
+caching layer.
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real    2m57.219s
+    user    0m6.922s
+    sys     0m14.192s
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real    0m10.985s
+    user    0m6.395s
+    sys     0m10.979s
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real    0m11.078s
+    user    0m6.704s
+    sys     0m10.773s
+    
+qgrep is much faster in both the hot and cold cache case.    
+    $ time qgrep.exe search linux NotFound_
+    real    0m5.485s
+    user    0m0.015s
+    sys     0m0.015s
+
+    $ time qgrep.exe search linux NotFound_
+    real    0m2.453s
+    user    0m0.015s
+    sys     0m0.000s
+
+### OS X
+The first run is with cold file caches, the next two runs show that OS X 
+does a good job with file caching.  With hot caches, find/grep beats qgrep!
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real	0m25.590s
+    user	0m0.862s
+    sys	0m3.742s
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real	0m7.667s
+    user	0m0.674s
+    sys	0m1.151s
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real	0m1.211s
+    user	0m0.627s
+    sys	0m0.593s
+
+qgrep runs in the same amount of time with hot or cold file system caches.
+    
+    $ time qgrep search linux NotFound_
+    real 0m2.211s 
+    user 0m3.035s 
+    sys 0m0.142s 
+       
+## Etc
+qgrep was written by Brad Beveridge, if you find qgrep to be useful a
+donation would be excellent motivation for me to make further
+improvements (such as much improved multicore support!). If total
+donations exceed $1000 Canadian dollars, I will release qgrep under a
+permissive licence like BSD.   
+
+This readme and a Paypal donate button can be found at www.qgrep.com
+
+
+## Credits 
+qgrep uses the following libraries, many thanks to their authors
+
+- [RE2](http://code.google.com/p/re2/) provides the regular expression
+code used for matching
+- [libarchive](http://code.google.com/p/libarchive/) provides the code
+used for compressing and decompressing the search material
+- [PThreads-w32](http://sourceware.org/pthreads-win32/) provides
+threading on Windows
+- [Pigz](http://www.zlib.net/pigz/) provided pthread interfacing
+- [Lua](http://www.lua.org/) is the programming language for much of
+qgrep
+
+# qgrep (Quick Grep)
+Super fast full text grep for programmers
+
+-----------------------
+
+## Introduction 
+Programmers commonly need to search code, faster searching makes for
+increased productivity. qgrep can be significantly faster than search 
+tools that don't build a database and is very easy to setup - simple
+projects need only a couple of lines of configuration.  
+qgrep runs on OS X and Windows, with a Linux port coming soon.
+
+## Installation 
+
+### OSX
+[Download](http://www.qgrep.com/qgrep-osx.tgz) and extract to a directory of your choice.  
+Currently qgrep runs on OSX 10.5 or later on a 64bit Intel system.
+
+### Linux 
+Coming soon, please email <brad@qgrep.com> to express your
+interest.
+
+### Windows 
+[Download](http://www.qgrep.com/setup.exe) and run the Windows installer.
+
+## Configuration and Usage 
+qgrep expects to find a configuration file in a specific place.  For
+*nix systems the file is `~/.qgrep/projects.lua`
+
+For Windows the file is `$(HOME)/.qgrep/projects.lua` if it exists, or
+`$(HOMEDRIVE)$(HOMEPATH)/.qgrep/projects.lua` otherwise.
+
+If the projects.lua file cannot be found, qgrep will offer to create
+the expected directory and config file. A large part of qgrep's
+functionality is written in Lua, and Lua is also used for project
+configuration.  Every qgrep command except **search** results in the
+`projects.lua` file being executed.  The full Lua language is able to
+be used from `projects.lua`, though it should be kept simple.  The
+**search** command is intended to be as fast as possible (the whole
+point of qgrep!), and will run without interpreting the `projects.lua`
+file. 
+
+### Example projects.lua file
+
+    Project{"linux", 
+        track("~/source/linux-2.6", "\\.c$", "\\.h$"),
+        ignore("f.o", "^bar\\.c$") 
+    }
+
+**Project** is a Lua function that accepts a table as its only
+  argument, the table should be a comma seperated list within {}.
+  The first element in the table *must* be a string and is used to
+  name the project, "linux" in our example case.  There can be any
+  number of **track** or **ignore** entries after the name of the
+  project.
+
+**track(path, patterns...)** tells qgrep to add *path* to the project,
+  and will recursively add all subdirectories.  *patterns* is a list
+  of regular expression patterns, any files under path that match any
+  pattern will be added.  In the example, we wish to add any file that
+  ends in '.c' or '.h'.  You can have any number of patterns after the
+  path entry. Having no patterns will result in all files being
+  added.  Because the project file is just Lua code, backslashes must
+  be escaped.  In the above example `\\.c` becomes the regex `\.c`, so
+  that `.` will be matched as the period character rather than the
+  usual regex meaning of ". means match any character"
+
+**ignore(patterns...)** tells qgrep to ignore files that match any
+  pattern.  There can be multiple ignore entries.  In our example, any
+  filename that contains the pattern "f.o" will be ignored.  Also any
+  file that is exactly named "bar.c" will be ignored.  The exactness
+  is because the pattern is surrounded by `^` and `$`.  The second
+  ignore pattern will never be matched because filenames are tested
+  with their full path, ie all files will start with
+  `~/source/linux-2.6/` 
+
+## Benchmarks 
+Benchmarks are a funny thing at the best of times, and even more so when you 
+add in the filesystem caching layer.  I have tested OSX and Windows with
+both hot and cold caches.  qgrep performs about the same with either a 
+hot or cold cache.  find/grep performs much better with a hot cache, and
+on OSX can actually do better than qgrep.  qgrep on Windows is always faster
+than Cygwin's find/grep.  qgrep will function best in an environment that 
+often has a cold cache.  My personal use case is 8 million lines of code
+on a Windows machine that often runs a high IO load under heavy memory pressure.
+The IO and memory pressure comes from compiling those 8 million lines!
+qgrep runs very well in that scenario, still being able to search quickly while
+compiling and linking.
+The benchmarks show searching all source & header files in linux-2.6, 26000 
+files in almost 10 million lines of code.
+
+### Windows
+The first three benchmarks show find/grep and the impact of Windows' file
+caching layer.
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real    2m57.219s
+    user    0m6.922s
+    sys     0m14.192s
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real    0m10.985s
+    user    0m6.395s
+    sys     0m10.979s
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real    0m11.078s
+    user    0m6.704s
+    sys     0m10.773s
+    
+qgrep is much faster in both the hot and cold cache case.    
+
+    $ time qgrep.exe search linux NotFound_
+    real    0m5.485s
+    user    0m0.015s
+    sys     0m0.015s
+
+    $ time qgrep.exe search linux NotFound_
+    real    0m2.453s
+    user    0m0.015s
+    sys     0m0.000s
+
+### OS X
+The first run is with cold file caches, the next two runs show that OS X 
+does a good job with file caching.  With hot caches, find/grep beats qgrep!
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real	0m25.590s
+    user	0m0.862s
+    sys	0m3.742s
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real	0m7.667s
+    user	0m0.674s
+    sys	0m1.151s
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real	0m1.211s
+    user	0m0.627s
+    sys	0m0.593s
+
+qgrep runs in the same amount of time with hot or cold file system caches.
+    
+    $ time qgrep search linux NotFound_
+    real 0m2.211s 
+    user 0m3.035s 
+    sys 0m0.142s 
+       
+## Etc
+qgrep was written by Brad Beveridge, if you find qgrep to be useful a
+donation would be excellent motivation for me to make further
+improvements (such as much improved multicore support!). If total
+donations exceed $1000 Canadian dollars, I will release qgrep under a
+permissive licence like BSD.   
+
+This readme and a Paypal donate button can be found at www.qgrep.com
+
+
+## Credits 
+qgrep uses the following libraries, many thanks to their authors
+
+- [RE2](http://code.google.com/p/re2/) provides the regular expression
+code used for matching
+- [libarchive](http://code.google.com/p/libarchive/) provides the code
+used for compressing and decompressing the search material
+- [PThreads-w32](http://sourceware.org/pthreads-win32/) provides
+threading on Windows
+- [Pigz](http://www.zlib.net/pigz/) provided pthread interfacing
+- [Lua](http://www.lua.org/) is the programming language for much of
+qgrep
+
+# qgrep (Quick Grep)
+Super fast full text grep for programmers
+
+-----------------------
+## NEWS!
+qgrep has gone free and is now on [github](https://github.com/Bradbev/qgrep) under a BSD license.
+
+## Introduction 
+Programmers commonly need to search code, faster searching makes for
+increased productivity. qgrep can be significantly faster than search 
+tools that don't build a database and is very easy to setup - simple
+projects need only a couple of lines of configuration.  
+qgrep runs on OS X and Windows, with a Linux port coming soon.
+
+## Installation 
+
+### OSX
+[Download](http://www.qgrep.com/qgrep-osx.tgz) and extract to a directory of your choice.  
+Currently qgrep runs on OSX 10.5 or later on a 64bit Intel system.
+
+### Linux 
+Coming soon, please email <brad@qgrep.com> to express your
+interest.
+
+### Windows 
+[Download](http://www.qgrep.com/setup.exe) and run the Windows installer.
+
+## Configuration and Usage 
+qgrep expects to find a configuration file in a specific place.  For
+*nix systems the file is `~/.qgrep/projects.lua`
+
+For Windows the file is `$(HOME)/.qgrep/projects.lua` if it exists, or
+`$(HOMEDRIVE)$(HOMEPATH)/.qgrep/projects.lua` otherwise.
+
+If the projects.lua file cannot be found, qgrep will offer to create
+the expected directory and config file. A large part of qgrep's
+functionality is written in Lua, and Lua is also used for project
+configuration.  Every qgrep command except **search** results in the
+`projects.lua` file being executed.  The full Lua language is able to
+be used from `projects.lua`, though it should be kept simple.  The
+**search** command is intended to be as fast as possible (the whole
+point of qgrep!), and will run without interpreting the `projects.lua`
+file. 
+
+### Example projects.lua file
+
+    Project{"linux", 
+        track("~/source/linux-2.6", "\\.c$", "\\.h$"),
+        ignore("f.o", "^bar\\.c$") 
+    }
+
+**Project** is a Lua function that accepts a table as its only
+  argument, the table should be a comma seperated list within {}.
+  The first element in the table *must* be a string and is used to
+  name the project, "linux" in our example case.  There can be any
+  number of **track** or **ignore** entries after the name of the
+  project.
+
+**track(path, patterns...)** tells qgrep to add *path* to the project,
+  and will recursively add all subdirectories.  *patterns* is a list
+  of regular expression patterns, any files under path that match any
+  pattern will be added.  In the example, we wish to add any file that
+  ends in '.c' or '.h'.  You can have any number of patterns after the
+  path entry. Having no patterns will result in all files being
+  added.  Because the project file is just Lua code, backslashes must
+  be escaped.  In the above example `\\.c` becomes the regex `\.c`, so
+  that `.` will be matched as the period character rather than the
+  usual regex meaning of ". means match any character"
+
+**ignore(patterns...)** tells qgrep to ignore files that match any
+  pattern.  There can be multiple ignore entries.  In our example, any
+  filename that contains the pattern "f.o" will be ignored.  Also any
+  file that is exactly named "bar.c" will be ignored.  The exactness
+  is because the pattern is surrounded by `^` and `$`.  The second
+  ignore pattern will never be matched because filenames are tested
+  with their full path, ie all files will start with
+  `~/source/linux-2.6/` 
+
+## Benchmarks 
+Benchmarks are a funny thing at the best of times, and even more so when you 
+add in the filesystem caching layer.  I have tested OSX and Windows with
+both hot and cold caches.  qgrep performs about the same with either a 
+hot or cold cache.  find/grep performs much better with a hot cache, and
+on OSX can actually do better than qgrep.  qgrep on Windows is always faster
+than Cygwin's find/grep.  qgrep will function best in an environment that 
+often has a cold cache.  My personal use case is 8 million lines of code
+on a Windows machine that often runs a high IO load under heavy memory pressure.
+The IO and memory pressure comes from compiling those 8 million lines!
+qgrep runs very well in that scenario, still being able to search quickly while
+compiling and linking.
+The benchmarks show searching all source & header files in linux-2.6, 26000 
+files in almost 10 million lines of code.
+
+### Windows
+The first three benchmarks show find/grep and the impact of Windows' file
+caching layer.
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real    2m57.219s
+    user    0m6.922s
+    sys     0m14.192s
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real    0m10.985s
+    user    0m6.395s
+    sys     0m10.979s
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real    0m11.078s
+    user    0m6.704s
+    sys     0m10.773s
+    
+qgrep is much faster in both the hot and cold cache case.    
+
+    $ time qgrep.exe search linux NotFound_
+    real    0m5.485s
+    user    0m0.015s
+    sys     0m0.015s
+
+    $ time qgrep.exe search linux NotFound_
+    real    0m2.453s
+    user    0m0.015s
+    sys     0m0.000s
+
+### OS X
+The first run is with cold file caches, the next two runs show that OS X 
+does a good job with file caching.  With hot caches, find/grep beats qgrep!
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real	0m25.590s
+    user	0m0.862s
+    sys	0m3.742s
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real	0m7.667s
+    user	0m0.674s
+    sys	0m1.151s
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real	0m1.211s
+    user	0m0.627s
+    sys	0m0.593s
+
+qgrep runs in the same amount of time with hot or cold file system caches.
+    
+    $ time qgrep search linux NotFound_
+    real 0m2.211s 
+    user 0m3.035s 
+    sys 0m0.142s 
+       
+## Etc
+qgrep was written by Brad Beveridge, if you find qgrep to be useful a
+donation would be excellent motivation for me to make further
+improvements (such as much improved multicore support!). If total
+donations exceed $1000 Canadian dollars, I will release qgrep under a
+permissive licence like BSD.   
+
+This readme and a Paypal donate button can be found at www.qgrep.com
+
+
+## Credits 
+qgrep uses the following libraries, many thanks to their authors
+
+- [RE2](http://code.google.com/p/re2/) provides the regular expression
+code used for matching
+- [libarchive](http://code.google.com/p/libarchive/) provides the code
+used for compressing and decompressing the search material
+- [PThreads-w32](http://sourceware.org/pthreads-win32/) provides
+threading on Windows
+- [Pigz](http://www.zlib.net/pigz/) provided pthread interfacing
+- [Lua](http://www.lua.org/) is the programming language for much of
+qgrep
+
+# qgrep (Quick Grep)
+Super fast full text grep for programmers
+
+-----------------------
+## NEWS!
+qgrep is now free and can be found on [github](https://github.com/Bradbev/qgrep) under a BSD license.
+
+## Introduction 
+Programmers commonly need to search code, faster searching makes for
+increased productivity. qgrep can be significantly faster than search 
+tools that don't build a database and is very easy to setup - simple
+projects need only a couple of lines of configuration.  
+qgrep runs on OS X and Windows, with a Linux port coming soon.
+
+## Installation 
+
+### OSX
+[Download](http://www.qgrep.com/qgrep-osx.tgz) and extract to a directory of your choice.  
+Currently qgrep runs on OSX 10.5 or later on a 64bit Intel system.
+
+### Linux 
+Coming soon, please email <brad@qgrep.com> to express your
+interest.
+
+### Windows 
+[Download](http://www.qgrep.com/setup.exe) and run the Windows installer.
+
+## Configuration and Usage 
+qgrep expects to find a configuration file in a specific place.  For
+*nix systems the file is `~/.qgrep/projects.lua`
+
+For Windows the file is `$(HOME)/.qgrep/projects.lua` if it exists, or
+`$(HOMEDRIVE)$(HOMEPATH)/.qgrep/projects.lua` otherwise.
+
+If the projects.lua file cannot be found, qgrep will offer to create
+the expected directory and config file. A large part of qgrep's
+functionality is written in Lua, and Lua is also used for project
+configuration.  Every qgrep command except **search** results in the
+`projects.lua` file being executed.  The full Lua language is able to
+be used from `projects.lua`, though it should be kept simple.  The
+**search** command is intended to be as fast as possible (the whole
+point of qgrep!), and will run without interpreting the `projects.lua`
+file. 
+
+### Example projects.lua file
+
+    Project{"linux", 
+        track("~/source/linux-2.6", "\\.c$", "\\.h$"),
+        ignore("f.o", "^bar\\.c$") 
+    }
+
+**Project** is a Lua function that accepts a table as its only
+  argument, the table should be a comma seperated list within {}.
+  The first element in the table *must* be a string and is used to
+  name the project, "linux" in our example case.  There can be any
+  number of **track** or **ignore** entries after the name of the
+  project.
+
+**track(path, patterns...)** tells qgrep to add *path* to the project,
+  and will recursively add all subdirectories.  *patterns* is a list
+  of regular expression patterns, any files under path that match any
+  pattern will be added.  In the example, we wish to add any file that
+  ends in '.c' or '.h'.  You can have any number of patterns after the
+  path entry. Having no patterns will result in all files being
+  added.  Because the project file is just Lua code, backslashes must
+  be escaped.  In the above example `\\.c` becomes the regex `\.c`, so
+  that `.` will be matched as the period character rather than the
+  usual regex meaning of ". means match any character"
+
+**ignore(patterns...)** tells qgrep to ignore files that match any
+  pattern.  There can be multiple ignore entries.  In our example, any
+  filename that contains the pattern "f.o" will be ignored.  Also any
+  file that is exactly named "bar.c" will be ignored.  The exactness
+  is because the pattern is surrounded by `^` and `$`.  The second
+  ignore pattern will never be matched because filenames are tested
+  with their full path, ie all files will start with
+  `~/source/linux-2.6/` 
+
+## Benchmarks 
+Benchmarks are a funny thing at the best of times, and even more so when you 
+add in the filesystem caching layer.  I have tested OSX and Windows with
+both hot and cold caches.  qgrep performs about the same with either a 
+hot or cold cache.  find/grep performs much better with a hot cache, and
+on OSX can actually do better than qgrep.  qgrep on Windows is always faster
+than Cygwin's find/grep.  qgrep will function best in an environment that 
+often has a cold cache.  My personal use case is 8 million lines of code
+on a Windows machine that often runs a high IO load under heavy memory pressure.
+The IO and memory pressure comes from compiling those 8 million lines!
+qgrep runs very well in that scenario, still being able to search quickly while
+compiling and linking.
+The benchmarks show searching all source & header files in linux-2.6, 26000 
+files in almost 10 million lines of code.
+
+### Windows
+The first three benchmarks show find/grep and the impact of Windows' file
+caching layer.
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real    2m57.219s
+    user    0m6.922s
+    sys     0m14.192s
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real    0m10.985s
+    user    0m6.395s
+    sys     0m10.979s
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real    0m11.078s
+    user    0m6.704s
+    sys     0m10.773s
+    
+qgrep is much faster in both the hot and cold cache case.    
+
+    $ time qgrep.exe search linux NotFound_
+    real    0m5.485s
+    user    0m0.015s
+    sys     0m0.015s
+
+    $ time qgrep.exe search linux NotFound_
+    real    0m2.453s
+    user    0m0.015s
+    sys     0m0.000s
+
+### OS X
+The first run is with cold file caches, the next two runs show that OS X 
+does a good job with file caching.  With hot caches, find/grep beats qgrep!
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real	0m25.590s
+    user	0m0.862s
+    sys	0m3.742s
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real	0m7.667s
+    user	0m0.674s
+    sys	0m1.151s
+
+    $ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+    real	0m1.211s
+    user	0m0.627s
+    sys	0m0.593s
+
+qgrep runs in the same amount of time with hot or cold file system caches.
+    
+    $ time qgrep search linux NotFound_
+    real 0m2.211s 
+    user 0m3.035s 
+    sys 0m0.142s 
+       
+## Etc
+qgrep was written by Brad Beveridge, if you find qgrep to be useful a
+donation would be excellent motivation for me to make further
+improvements (such as much improved multicore support!). If total
+donations exceed $1000 Canadian dollars, I will release qgrep under a
+permissive licence like BSD.   
+
+This readme and a Paypal donate button can be found at www.qgrep.com
+
+
+## Credits 
+qgrep uses the following libraries, many thanks to their authors
+
+- [RE2](http://code.google.com/p/re2/) provides the regular expression
+code used for matching
+- [libarchive](http://code.google.com/p/libarchive/) provides the code
+used for compressing and decompressing the search material
+- [PThreads-w32](http://sourceware.org/pthreads-win32/) provides
+threading on Windows
+- [Pigz](http://www.zlib.net/pigz/) provided pthread interfacing
+- [Lua](http://www.lua.org/) is the programming language for much of
+qgrep
+
