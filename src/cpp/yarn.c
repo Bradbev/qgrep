@@ -39,7 +39,7 @@
 #define local static            /* for non-exported functions and globals */
 
 /* error handling external globals, resettable by application */
-char *yarn_prefix = "yarn";
+const char *yarn_prefix = "yarn";
 void (*yarn_abort)(int) = NULL;
 
 
@@ -90,7 +90,7 @@ lock *new_lock(long initial)
     int ret;
     lock *bolt;
 
-    bolt = my_malloc(sizeof(struct lock_s));
+    bolt = (lock *)my_malloc(sizeof(struct lock_s));
     if ((ret = pthread_mutex_init(&(bolt->mutex), NULL)) ||
         (ret = pthread_cond_init(&(bolt->cond), NULL)))
         fail(ret);
@@ -229,7 +229,7 @@ local void reenter(void *dummy)
    marking occurs even if the thread is cancelled */
 local void *ignition(void *arg)
 {
-    struct capsule *capsule = arg;
+    struct capsule *capsule = (struct capsule *)arg;
 
     /* run reenter() before leaving */
     pthread_cleanup_push(reenter, NULL);
@@ -258,7 +258,7 @@ thread *launch(void (*probe)(void *), void *payload)
        (allocated instead of automatic so that we're sure this will still be
        there when ignition() actually starts up -- ignition() will free this
        allocation) */
-    capsule = my_malloc(sizeof(struct capsule));
+    capsule = (struct capsule *)my_malloc(sizeof(struct capsule));
     capsule->probe = probe;
     capsule->payload = payload;
 
@@ -267,7 +267,7 @@ thread *launch(void (*probe)(void *), void *payload)
     possess(&(threads_lock));
 
     /* create the thread and call ignition() from that thread */
-    th = my_malloc(sizeof(struct thread_s));
+    th = (thread *)my_malloc(sizeof(struct thread_s));
     if ((ret = pthread_attr_init(&attr)) ||
         (ret = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE)) ||
         (ret = pthread_create(&(th->id), &attr, ignition, capsule)) ||

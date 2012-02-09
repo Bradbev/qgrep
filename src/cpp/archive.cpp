@@ -597,11 +597,7 @@ static char gReplaceSlashesFrom = 0;
 
 static void printLinePart(const char* lineStart, const char* lineEnd)
 {
-    while (lineStart < lineEnd)
-    {
-	putchar(*lineStart);
-	lineStart++;
-    }
+    fwrite(lineStart, 1, lineEnd - lineStart, stdout); 
 }
 
 static void ReplaceChars(std::string& s, char from, char to)

@@ -15,7 +15,7 @@ installer: dist
 endif
 
 upload: docs
-	ftp -u qgrepco1@qgrep.com:/www/index.html doc/html/readme.html
+	#ftp -u qgrepco1@qgrep.com:/www/index.html doc/html/readme.html
 	#ftp -u qgrepco1@qgrep.com:/www/qgrep-osx.tgz installer/osx/qgrep-osx.tgz
 	#ftp -u qgrepco1@qgrep.com:/www/setup.exe installer/win32/setup.exe
 ####################################################
