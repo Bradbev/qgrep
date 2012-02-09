@@ -1,5 +1,0 @@
-dist:
-	python igrep.py
-	cxfreeze igrep.py -z engine.pyc -z filemon.pyc -z logger.pyc --no-copy-deps --target-dir $(DIST_DIR)
-
-.PHONY: dist

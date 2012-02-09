@@ -1,4 +1,0 @@
-dist:
-	/c/Python27/Scripts/cxfreeze igrep.py -z engine.pyc -z logger.pyc -z filemon.pyc --no-copy-deps --target-dir $(DIST_DIR)
-
-.PHONY: dist

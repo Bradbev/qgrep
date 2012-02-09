@@ -109,7 +109,11 @@
         handler will exit (set to NULL by default for no action)
  */
 
-extern char *yarn_prefix;
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+extern const char *yarn_prefix;
 extern void (*yarn_abort)(int);
 
 void yarn_mem(void *(*)(size_t), void (*)(void *));
@@ -132,3 +136,6 @@ enum wait_op {
 void wait_for(lock *, enum wait_op, long);
 long peek_lock(lock *);
 void free_lock(lock *);
+#ifdef __cplusplus
+}
+#endif

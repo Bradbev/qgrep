@@ -1,4 +1,4 @@
-gVersion = "1.0.0"
+gVersion = "1.1.0"
 gVerbose = false
 
 ------------- Util
@@ -6,6 +6,21 @@ function Log(...)
    if c.isVerbose() then
       print(unpack(arg))
    end
+end
+
+function key_sorted_pairs(t)
+   local sorted = {}
+   for k,_ in pairs(t) do 
+      table.insert(sorted, k)
+   end
+   table.sort(sorted)
+   return coroutine.wrap(
+	function()
+	   for _,k in pairs(sorted) do
+	      coroutine.yield(k, t[k])
+	   end
+	end
+     )
 end
 
 -- Shift all indexes in a table down, dropping index 1
@@ -291,7 +306,7 @@ function usage()
    print("In the following help [] denotes optional arguments, <> denotes required arguments")
    print("Verbose mode is enabled with 'qgrep v ...'")
    print("Commands for qgrep")
-   for k,v in pairs(gCommands) do
+   for k,v in key_sorted_pairs(gCommands) do
       print(string.format("%20s  -  %s", k, v.help))
    end
 end
@@ -328,7 +343,20 @@ end
 function FileRename(old, new)
    if not os.rename(old, new) then
       os.remove(new)
-      os.rename(old,new)
+      if not os.rename(old,new) then
+	 local size = 2^13      -- good buffer size (8K)
+	 local fin = io.open(old, "r")
+	 local fout = io.open(new, "w+")
+	 while fin and fout do
+	    local block = fin:read(size)
+	    if not block then 
+	       fin:close()
+	       fout:close()
+	       break 
+	    end
+	    fout:write(block)
+	 end	 
+      end
    end
 end
 
@@ -435,8 +463,8 @@ function main(...)
    ExecuteCommandLine(newArgs)
 end
 
-function fakesearch() end
-defHelp(fakesearch,
+function search_help_only() end
+defHelp(search_help_only,
 [[Search is the primary use of qgrep.  The search command will not 
 interpret the projects.lua file if possible.  By default matches 
 will be returned in a format that is the same as grep, which is
@@ -456,7 +484,7 @@ Replacing slashes may be useful for editors that expect a certain slash type.]])
 defCommand(help,         "help",          "Provides further help for commands")
 defCommand(build,        "build",         "<project> regenerates the database for <project>")
 defCommand(listprojects, "projects",      "Lists all known projects")
-defCommand(fakesearch,   "search",        "<project> [iV/\\] <regex> searches for <regex> in the given project")
+defCommand(search_help_only,   "search",        "<project> [iV/\\] <regex> searches for <regex> in the given project")
 defCommand(files,        "files",         "<project> <regex> filters the filenames in <project> through <regex>")
 defCommand(startservice, "start-service", "Begins monitoring all projects ")
 defCommand(version,      "version",       "Prints the version")
@@ -492,3 +520,8 @@ Project{"exampleproject"
    os.exit(0)
 end
 -------------------------------------------
+-- Load plugins
+local lua_files_regex = { c.regex(".*\.lua$") }
+for i, plugin in pairs(filteredWalkDir(c.qgreppath() .. "/plugins", lua_files_regex, {})) do
+   dofile(plugin)
+end

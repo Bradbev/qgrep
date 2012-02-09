@@ -21,6 +21,9 @@ extern "C" {
 #include <string>
 #include "re2/re2.h"
 
+// Forward declares
+void lua_ProjectExistsOrDie(const char* projectName);
+
 lua_State* gLuaState = NULL;
 
 bool gVerbose = false;
@@ -126,6 +129,14 @@ bool FileExists(const char* path)
 {
     struct stat dummy;
     return !stat(path, &dummy);
+}
+
+char* GetProjectFileName(char* buffer, const char* project)
+{
+    char buf[1024];
+    GetQgrepPath(buf);
+    sprintf(buffer, "%s/%s.tgz", buf, project);
+    return buffer;
 }
 
 class DirWalker
@@ -332,12 +343,13 @@ int C_fileinfo(lua_State* L)
     if (stat(path, &info) == 0)
     {
 	int table = lua_NewTable(L);
-#ifdef WIN32
+#if defined(WIN32) || defined(LINUX)
 	lua_SetTable(L, table, "mtime", integer, info.st_mtime);
 #else
 	lua_SetTable(L, table, "mtime", integer, info.st_mtimespec.tv_sec);
 #endif
 	lua_SetTable(L, table, "isdir", boolean, info.st_mode & S_IFDIR);
+	lua_SetTable(L, table, "size",  integer, info.st_size);
 	return 1;
     }
     else
@@ -399,18 +411,94 @@ int C_re2_compile(lua_State* L)
     return 1;
 }
 
+// (nil) -> bool
 int C_isVerbose(lua_State* L)
 {
     lua_pushboolean(L, gVerbose);
     return 1;
 }
 
+// (dirname:string) -> NIL
 int C_mkdir(lua_State* L)
 {
     const char* dirname = luaL_checkstring(L,1);
     int ret = mkdir(dirname, 0777);
     lua_pushinteger(L, ret);
     return 1;
+}
+
+// callback for lua initiated searches
+static void luaHitCallback(void* context, const char* filename, unsigned int lineNumber, const char* lineStart, const char* lineEnd)
+{
+    lua_State* L = (lua_State*)context;
+    int top = lua_gettop(L);
+    // Top of L should have the function to call, duplicate it
+    lua_pushvalue(L, top);
+    lua_pushstring(L, filename);
+    lua_pushinteger(L, lineNumber);
+    lua_pushlstring(L, lineStart, lineEnd-lineStart);
+    ReportedDoCall(L, 3, 1);
+}
+
+
+void test_error(int test, const char* msg)
+{
+    if (!test)
+    {
+	printf("%s\n", msg);
+	printf("Exiting...\n");
+	exit(0);
+    }
+}
+// arg is a table with the following elements
+// project  - string name of the project
+// callback - function(filename, linenumber, linestring)
+// regex    - regex to search for
+// caseSensitive - 
+int C_executeSearch(lua_State* L)
+{
+    const int arg_table = 1;
+    lua_getfield(L, arg_table, "project");            /* idx:2 */
+    test_error(lua_isstring(L, -1), "execute_search needs a key of 'project' which must be a string");
+    const char* project = luaL_checkstring(L, 2);
+
+    char projectFile[1024];
+    GetProjectFileName(projectFile, project);
+    if (FileExists(projectFile))
+    {
+	// unpack the rest of the table
+	lua_getfield(L, arg_table, "regex");          /* idx:3 */
+	test_error(lua_isstring(L, -1), "execute_search needs a key of 'regex' which must be a string");
+	lua_getfield(L, arg_table, "caseSensitive");  /* idx:4 */
+	// MUST leave the callback on the top of the stack
+	lua_getfield(L, arg_table, "callback");       /* idx:5 */
+	test_error(lua_isfunction(L, -1), "execute_search needs a key of 'callback' which must be a lua function");
+	
+	// marshal into C data
+	const char* regex = luaL_checkstring(L, 3);
+	bool caseSensitive = lua_toboolean(L, 4);
+	
+	GrepParams params;
+	memset(&params, 0, sizeof(params));
+	// standard parms
+	params.streamBlockSize = 1 * 1024 * 1024;
+	params.streamBlockCount = 10;
+	params.searchFilenames = false;
+	// custom parms
+	params.sourceArchiveName = projectFile;
+	params.callbackFunction = luaHitCallback;
+	params.caseSensitive = caseSensitive;
+	params.searchPattern = regex;
+	params.callbackContext = (void*)L;
+	ExecuteSearch(&params);
+    }
+    else
+    {
+	lua_ProjectExistsOrDie(project);
+	printf("Project is registered, but archive does not exist.\n");
+	printf("Run 'qgrep build %s' to generate archive\n", project);
+    }
+    return 0;
 }
 
 luaL_Reg luaFunctions[] =
@@ -424,6 +512,7 @@ luaL_Reg luaFunctions[] =
     { "fileinfo", C_fileinfo },
     { "waitForKeypress", C_waitForKeypress },
     { "isVerbose", C_isVerbose },
+    { "execute_search", C_executeSearch},
     { NULL, NULL}, 
 };
 
@@ -540,15 +629,7 @@ bool StrStartsWith(const char* str, const char* startsWith)
     return true;
 }
 
-char* GetProjectFileName(char* buffer, const char* project)
-{
-    char buf[1024];
-    GetQgrepPath(buf);
-    sprintf(buffer, "%s/%s.tgz", buf, project);
-    return buffer;
-}
-
-void FastPathSearch(int argc, const char** argv, bool searchFileNames = false)
+void FastPathSearch(int argc, const char** argv)
 {
     const char* project = argv[2];
     const char* options = "";
@@ -570,9 +651,7 @@ void FastPathSearch(int argc, const char** argv, bool searchFileNames = false)
     GetProjectFileName(projectFile, project);
     if (FileExists(projectFile))
     {
-	char realOptions[10];
-	sprintf(realOptions, "%s%s", options, searchFileNames ? "f" : "");
-	ExecuteSimpleSearch(projectFile, realOptions, regex);
+	ExecuteSimpleSearch(projectFile, options, regex);
     }
     else
     {
@@ -594,11 +673,9 @@ int main(int argc, const char** argv)
 	}
 	Log("Verbosity test %s\n", "foo");
 	bool search = StrStartsWith(argv[1], "search");
-	// File handling now done in Lua
-	bool files = false;//StrStartsWith(argv[1], "files");
-	if (search || files)
+	if (search)
 	{
-	    FastPathSearch(argc, argv, files);
+	    FastPathSearch(argc, argv);
 	    return 0;
 	}
     }

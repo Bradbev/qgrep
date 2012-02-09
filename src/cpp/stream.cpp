@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <strings.h>
+#include <string.h>
 #include "stream.h"
 #include <assert.h>
 #include <algorithm>
