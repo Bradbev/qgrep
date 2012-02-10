@@ -3,8 +3,9 @@
 #include "stream.h"
 #include <stdlib.h>
 #include <stdio.h>
-#include <archive.h>
-#include <archive_entry.h>
+//#include <archive.h>
+//#include <archive_entry.h>
+#include "archive_forwards.h"
 #include "re2/re2.h"
 #include <algorithm>
 #include <sys/types.h>
