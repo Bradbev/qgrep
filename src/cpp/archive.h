@@ -15,6 +15,7 @@ struct GrepParams
     const char* searchPattern;
     unsigned int caseSensitive;
     unsigned int searchFilenames;
+	unsigned int regexIsLiteral;
 };
 void ExecuteSearch(GrepParams* param);
     
