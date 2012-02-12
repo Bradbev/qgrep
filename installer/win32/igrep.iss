@@ -9,8 +9,8 @@ DefaultGroupName=qgrep
 ; UninstallDisplayIcon={app}\MyProg.exe
 Compression=lzma2
 SolidCompression=yes
-OutputDir=c:\dev\igrep\installer\win32
-SourceDir=c:\dev\igrep\dist\win32
+OutputDir=d:\mydev\qgrep\installer\win32
+SourceDir=d:\mydev\qgrep\dist\win32
 
 [Files]
 Source: "*"; DestDir: "{app}"

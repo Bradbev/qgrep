@@ -21,7 +21,7 @@ upload: docs
 ####################################################
 
 ######################## Win32/MINGW specific
-ifeq ($(shell uname -s), MINGW32_NT-5.1)
+ifeq ($(shell uname -s), MINGW32_NT-6.1)
 PLATFORM = win32
 
 docs:
@@ -36,7 +36,8 @@ lib_copy:
 
 installer: dist
 	rm -f installer/win32/setup.exe
-	"c:\Program Files\Inno Setup 5\ISCC.exe" installer/win32/igrep.iss
+	"c:\Program Files (x86)\Inno Setup 5\ISCC.exe" installer/win32/igrep.iss
+	cp installer/win32/setup.exe dist/win32/
 .PHONY: installer
 
 endif
