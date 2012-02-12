@@ -14,16 +14,9 @@ qgrep runs on OS X and Windows, with a Linux port coming soon.
 
 ## Installation 
 
-### OSX
-[Download](http://www.qgrep.com/qgrep-osx.tgz) and extract to a directory of your choice.  
-Currently qgrep runs on OSX 10.5 or later on a 64bit Intel system.
-
-### Linux 
-Coming soon, please email <brad@qgrep.com> to express your
-interest.
-
-### Windows 
-[Download](http://www.qgrep.com/setup.exe) and run the Windows installer.
+### Binaries
+Binaries are provided for OSX and Windows, and can be found
+[here](https://github.com/Bradbev/qgrep/tree/master/dist). 
 
 ## Configuration and Usage 
 qgrep expects to find a configuration file in a specific place.  For
@@ -75,6 +68,68 @@ file.
   ignore pattern will never be matched because filenames are tested
   with their full path, ie all files will start with
   `~/source/linux-2.6/` 
+  
+## Building from source
+
+### Windows
+You will need to install [MinGW](http://www.mingw.org/).  From the root dir 
+'make dist' will build a stand alone qgrep binary.  
+To build installers you will need [Inno
+Setup](http://www.jrsoftware.org/isinfo.php), and you can run the
+command 'make installer'.  It is likely you will need to change the
+./qgrep/installer/win32/igrep.iss file to match your install path.
+
+### OSX & Linux 
+I have not done a very good job of making qgrep fully standalone.  You
+will need to install libarchive-2.8 & lua-5.1 to your system before
+qgrep will build.  
+
+## Plugins
+New to qgrep from version 1.1 is the concept of plugins.  For any
+command that is not 'search', qgrep will evaluate all .lua files in
+your ~/.qgrep/plugins directory.  **This can be viewed as a security
+flaw as these files will run with the same permissions as qgrep.**
+Plugins have full access to standard Lua, with full libraries, as well
+as the API functions detailed below.
+
+### API
+
+**`defCommand(command_function, command_line_name, short_help_string)`**  
+`command_function` - the Lua function that will be called when this
+command is run on the command line.  Arguments to this function are
+the arguments on the command line delimited by spaces.   
+`command_line_name` - the name to use on the command line  
+`short_help_string` - a short help string for this command
+
+**`Log(...)`**  
+Same as `print` if qgrep is in verbose mode, otherwise produces no output.
+
+**`walkdir(base, recurse)`**  
+Iterates over all files in a directory.  For example, to print all files in your home directory
+
+    for f in walkdir("~/", false) do
+        print(f)
+    end
+
+**`iterateArchive(archiveName)`**  
+Given the full path to an archive (zip) file, iterate over the files in that archive.
+
+**`IterateProjectFiles(project)`**  
+Iterate the files in a project.  
+
+**`GetProjectOrDie(projectName)`**  
+Use this function to convert a commandline project name to the internal 'project' table that many functions require.  Will quit with a message if project name is not found.
+
+### archive API
+These functions are implemented in C and exposed to Lua.
+
+**`archive.CreateArchive(archiveName)`**  
+Create a new archive with the given name & return an archive lightuserdata for further use.
+
+**`archive.AddFileToArchive(archive, filename)`**  
+The first argument must be the lightuserdata returned by `archive.CreateArchive`.  Add `filename` to the open archive.
+
+**`archive.CloseArchive
 
 ## Benchmarks 
 Benchmarks are a funny thing at the best of times, and even more so when you 
@@ -151,9 +206,7 @@ qgrep runs in the same amount of time with hot or cold file system caches.
 ## Etc
 qgrep was written by Brad Beveridge, if you find qgrep to be useful a
 donation would be excellent motivation for me to make further
-improvements (such as much improved multicore support!). If total
-donations exceed $1000 Canadian dollars, I will release qgrep under a
-permissive licence like BSD.   
+improvements (such as much improved multicore support!). 
 
 <!-- begin:html -->
 <form action="https://www.paypal.com/cgi-bin/webscr" method="post">

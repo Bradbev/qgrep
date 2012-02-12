@@ -27,19 +27,10 @@ qgrep runs on OS X and Windows, with a Linux port coming soon.</p>
 
 <h2>Installation</h2>
 
-<h3>OSX</h3>
+<h3>Binaries</h3>
 
-<p><a href="http://www.qgrep.com/qgrep-osx.tgz">Download</a> and extract to a directory of your choice. <br />
-Currently qgrep runs on OSX 10.5 or later on a 64bit Intel system.</p>
-
-<h3>Linux</h3>
-
-<p>Coming soon, please email <a href="&#x6D;&#x61;&#x69;&#x6C;&#116;&#x6F;:&#x62;&#x72;&#97;&#x64;&#64;&#113;&#x67;&#114;&#101;&#112;.&#x63;&#111;&#x6D;">&#x62;&#x72;&#97;&#x64;&#64;&#113;&#x67;&#114;&#101;&#112;.&#x63;&#111;&#x6D;</a> to express your
-interest.</p>
-
-<h3>Windows</h3>
-
-<p><a href="http://www.qgrep.com/setup.exe">Download</a> and run the Windows installer.</p>
+<p>Binaries are provided for OSX and Windows, and can be found
+<a href="https://github.com/Bradbev/qgrep/tree/master/dist">here</a>. </p>
 
 <h2>Configuration and Usage</h2>
 
@@ -93,6 +84,52 @@ file. </p>
   ignore pattern will never be matched because filenames are tested
   with their full path, ie all files will start with
   <code>~/source/linux-2.6/</code> </p>
+
+<h2>Building from source</h2>
+
+<h3>Windows</h3>
+
+<p>You will need to install <a href="http://www.mingw.org/">MinGW</a>.  From the root dir 
+'make dist' will build a stand alone qgrep binary. <br />
+To build installers you will need <a href="http://www.jrsoftware.org/isinfo.php">Inno
+Setup</a>, and you can run the
+command 'make installer'.  It is likely you will need to change the
+./qgrep/installer/win32/igrep.iss file to match your install path.</p>
+
+<h3>OSX &amp; Linux</h3>
+
+<p>I have not done a very good job of making qgrep fully standalone.  You
+will need to install libarchive-2.8 &amp; lua-5.1 to your system before
+qgrep will build.  </p>
+
+<h2>Plugins</h2>
+
+<p>New to qgrep from version 1.1 is the concept of plugins.  For any
+command that is not 'search', qgrep will evaluate all .lua files in
+your ~/.qgrep/plugins directory.  <strong>This can be viewed as a security
+flaw as these files will run with the same permissions as qgrep.</strong>
+Plugins have full access to standard Lua, with full libraries, as well
+as the API functions detailed below.</p>
+
+<h3>API</h3>
+
+<p><strong><code>defCommand(command_function, command_line_name, short_help_string)</code></strong> <br />
+<code>command_function</code> - the Lua function that will be called when this
+command is run on the command line.  Arguments to this function are
+the arguments on the command line delimited by spaces. <br />
+<code>command_line_name</code> - the name to use on the command line <br />
+<code>short_help_string</code> - a short help string for this command</p>
+
+<p><strong><code>Log(...)</code></strong> <br />
+Same as <code>print</code> if qgrep is in verbose mode, otherwise produces no output.</p>
+
+<p><strong><code>walkdir(base, recurse)</code></strong> <br />
+Iterates over all files in a directory.  For example, to print all files in your home directory</p>
+
+<pre><code>for f in walkdir("~/", false) do
+    print(f)
+end
+</code></pre>
 
 <h2>Benchmarks</h2>
 
@@ -177,9 +214,7 @@ sys 0m0.142s
 
 <p>qgrep was written by Brad Beveridge, if you find qgrep to be useful a
 donation would be excellent motivation for me to make further
-improvements (such as much improved multicore support!). If total
-donations exceed $1000 Canadian dollars, I will release qgrep under a
-permissive licence like BSD.   </p>
+improvements (such as much improved multicore support!). </p>
 
 <form action="https://www.paypal.com/cgi-bin/webscr" method="post">
 <input type="hidden" name="cmd" value="_s-xclick">
