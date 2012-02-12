@@ -1,4 +1,4 @@
-gVersion = "1.1.0"
+gVersion = "1.2.0"
 gVerbose = false
 
 ------------- Util
@@ -473,6 +473,7 @@ will be returned in a format that is the same as grep, which is
 Syntax is qgrep search <project> [options] <regex>
 Options are:
   i - causes the search to be case insensitive
+  l - treat the regex as a literal string
   f - search only filenames in the project 
   V - output matches in a format suitable for Visual Studio to jump to.
       The format is <filename> (<linenumber>):<line>

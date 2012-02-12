@@ -442,6 +442,7 @@ void ExecuteSearch(GrepParams* param)
   context->callbackContext = param->callbackContext;
   RE2::Options options;
   options.set_case_sensitive(param->caseSensitive);
+  options.set_literal(param->regexIsLiteral);
   context->pattern = new RE2(param->searchPattern, options);
   
   thread* consumer = launch(grepThreadFn, context);
@@ -637,7 +638,7 @@ static void visualStudioHitFormat(void* context, const char* filename, unsigned 
     {
 		std::string s(filename);
 		ReplaceChars(s, '/', '\\');
-		printf("%s (%d):", filename, lineNumber);
+		printf("%s (%d):", s.c_str(), lineNumber);
     }
     printLinePart(lineStart, lineEnd);
     putchar('\n');
@@ -648,11 +649,13 @@ void ExecuteSimpleSearch(const char* archiveName, const char* options, const cha
     bool caseSensitive = true;
     bool searchFilenames = false;
     bool visualStudioHit = false;
+	bool regexIsLiteral = false;
     
     while (*options)
     {
 	switch (*options)
 	{
+	case 'l': regexIsLiteral = true; break;
 	case 'i': caseSensitive = false; break;
 	case 'f': searchFilenames = true; break;
 	case 'V': visualStudioHit = true; break;
@@ -675,6 +678,7 @@ void ExecuteSimpleSearch(const char* archiveName, const char* options, const cha
     params.streamBlockCount = 10;
     params.caseSensitive = caseSensitive;
     params.searchFilenames = searchFilenames;
+	params.regexIsLiteral = regexIsLiteral;
     params.callbackContext = (void*)searchFilenames;
     
     ExecuteSearch(&params);
