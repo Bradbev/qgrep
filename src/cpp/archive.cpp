@@ -629,13 +629,15 @@ static void visualStudioHitFormat(void* context, const char* filename, unsigned 
 {
     if (gReplaceSlashesTo)
     {
-	std::string s(filename);
-	ReplaceChars(s, gReplaceSlashesFrom, gReplaceSlashesTo);
-	printf("%s (%d):", s.c_str(), lineNumber);
+		std::string s(filename);
+		ReplaceChars(s, gReplaceSlashesFrom, gReplaceSlashesTo);
+		printf("%s (%d):", s.c_str(), lineNumber);
     }
     else
     {
-	printf("%s (%d):", filename, lineNumber);
+		std::string s(filename);
+		ReplaceChars(s, '/', '\\');
+		printf("%s (%d):", filename, lineNumber);
     }
     printLinePart(lineStart, lineEnd);
     putchar('\n');
@@ -667,7 +669,7 @@ void ExecuteSimpleSearch(const char* archiveName, const char* options, const cha
     params.sourceArchiveName = archiveName;
     params.callbackFunction = grepFormatHit;
     if (visualStudioHit)
-	params.callbackFunction = visualStudioHitFormat;
+		params.callbackFunction = visualStudioHitFormat;
     params.searchPattern = regex;
     params.streamBlockSize = 1 * 1024 * 1024;
     params.streamBlockCount = 10;
