@@ -1,88 +1,326 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset='utf-8'>
-
-  <title>Bradbev/qgrep @ GitHub</title>
-
-  <style type="text/css">
-    body {
-      margin-top: 1.0em;
-      background-color: #74b152;
-      font-family: Helvetica, Arial, FreeSans, san-serif;
-      color: #ffffff;
-    }
-    #container {
-      margin: 0 auto;
-      width: 700px;
-    }
-    h1 { font-size: 3.8em; color: #8b4ead; margin-bottom: 3px; }
-    h1 .small { font-size: 0.4em; }
-    h1 a { text-decoration: none }
-    h2 { font-size: 1.5em; color: #8b4ead; }
-    h3 { text-align: center; color: #8b4ead; }
-    a { color: #8b4ead; }
-    .description { font-size: 1.2em; margin-bottom: 30px; margin-top: 30px; font-style: italic;}
-    .download { float: right; }
-    pre { background: #000; color: #fff; padding: 15px;}
-    hr { border: 0; width: 80%; border-bottom: 1px solid #aaa}
-    .footer { text-align:center; padding-top:30px; font-style: italic; }
-  </style>
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html> <head>
+<title></title>
 </head>
 
 <body>
-  <a href="https://github.com/Bradbev/qgrep"><img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub" /></a>
+<h1></h1>
 
-  <div id="container">
 
-    <div class="download">
-      <a href="https://github.com/Bradbev/qgrep/zipball/master">
-        <img border="0" width="90" src="https://github.com/images/modules/download/zip.png"></a>
-      <a href="https://github.com/Bradbev/qgrep/tarball/master">
-        <img border="0" width="90" src="https://github.com/images/modules/download/tar.png"></a>
-    </div>
+<h1>qgrep (Quick Grep)</h1>
 
-    <h1><a href="https://github.com/Bradbev/qgrep">qgrep</a>
-      <span class="small">by <a href="https://github.com/Bradbev">Bradbev</a></span></h1>
+<p>Super fast full text grep for programmers</p>
 
-    <div class="description">
-      BSD licensed qgrep
-    </div>
+<hr />
 
-    
+<h2>NEWS!</h2>
 
-    
+<p>qgrep is now free and can be found on <a href="https://github.com/Bradbev/qgrep">github</a> under a BSD license.</p>
 
-    
+<h2>Introduction</h2>
 
-    
+<p>Programmers commonly need to search code, faster searching makes for
+increased productivity. qgrep can be significantly faster than search 
+tools that don't build a database and is very easy to setup - simple
+projects need only a couple of lines of configuration. <br />
+qgrep runs on OS X and Windows, with a Linux port coming soon.</p>
 
-    
-      <h2>Authors</h2>
-      <p>unknown (bbeveridge@bur1-bbeveridge.eac.ad.ea.com)<br/>Brad Beveridge (bradbev@github.com)<br/>      </p>
-    
+<h2>Installation</h2>
 
-    
-      <h2>Contact</h2>
-      <p> (brad.beveridge@gmail.com)<br/>      </p>
-    
+<h3>Binaries</h3>
 
-    <h2>Download</h2>
-    <p>
-      You can download this project in either
-      <a href="https://github.com/Bradbev/qgrep/zipball/master">zip</a> or
-      <a href="https://github.com/Bradbev/qgrep/tarball/master">tar formats.
-    </p>
-    <p>You can also clone the project with <a href="http://git-scm.com">Git</a>
-      by running:
-      <pre>$ git clone git://github.com/Bradbev/qgrep</pre>
-    </p>
+<p>Binaries are provided for OSX and Windows, and can be found
+<a href="https://github.com/Bradbev/qgrep/tree/master/dist">here</a>. </p>
 
-    <div class="footer">
-      get the source code on GitHub : <a href="https://github.com/Bradbev/qgrep">Bradbev/qgrep</a>
-    </div>
+<h2>Configuration and Usage</h2>
 
-  </div>
+<p>qgrep expects to find a configuration file in a specific place.  For
+*nix systems the file is <code>~/.qgrep/projects.lua</code></p>
 
-</body>
-</html>
+<p>For Windows the file is <code>$(HOME)/.qgrep/projects.lua</code> if it exists, or
+<code>$(HOMEDRIVE)$(HOMEPATH)/.qgrep/projects.lua</code> otherwise.</p>
+
+<p>If the projects.lua file cannot be found, qgrep will offer to create
+the expected directory and config file. A large part of qgrep's
+functionality is written in Lua, and Lua is also used for project
+configuration.  Every qgrep command except <strong>search</strong> results in the
+<code>projects.lua</code> file being executed.  The full Lua language is able to
+be used from <code>projects.lua</code>, though it should be kept simple.  The
+<strong>search</strong> command is intended to be as fast as possible (the whole
+point of qgrep!), and will run without interpreting the <code>projects.lua</code>
+file. </p>
+
+<h3>Example projects.lua file</h3>
+
+<pre><code>Project{"linux", 
+    track("~/source/linux-2.6", "\\.c$", "\\.h$"),
+    ignore("f.o", "^bar\\.c$") 
+}
+</code></pre>
+
+<p><strong>Project</strong> is a Lua function that accepts a table as its only
+  argument, the table should be a comma seperated list within {}.
+  The first element in the table <em>must</em> be a string and is used to
+  name the project, "linux" in our example case.  There can be any
+  number of <strong>track</strong> or <strong>ignore</strong> entries after the name of the
+  project.</p>
+
+<p><strong>track(path, patterns...)</strong> tells qgrep to add <em>path</em> to the project,
+  and will recursively add all subdirectories.  <em>patterns</em> is a list
+  of regular expression patterns, any files under path that match any
+  pattern will be added.  In the example, we wish to add any file that
+  ends in '.c' or '.h'.  You can have any number of patterns after the
+  path entry. Having no patterns will result in all files being
+  added.  Because the project file is just Lua code, backslashes must
+  be escaped.  In the above example <code>\\.c</code> becomes the regex <code>\.c</code>, so
+  that <code>.</code> will be matched as the period character rather than the
+  usual regex meaning of ". means match any character"</p>
+
+<p><strong>ignore(patterns...)</strong> tells qgrep to ignore files that match any
+  pattern.  There can be multiple ignore entries.  In our example, any
+  filename that contains the pattern "f.o" will be ignored.  Also any
+  file that is exactly named "bar.c" will be ignored.  The exactness
+  is because the pattern is surrounded by <code>^</code> and <code>$</code>.  The second
+  ignore pattern will never be matched because filenames are tested
+  with their full path, ie all files will start with
+  <code>~/source/linux-2.6/</code> </p>
+
+<h2>Building from source</h2>
+
+<h3>Windows</h3>
+
+<p>You will need to install <a href="http://www.mingw.org/">MinGW</a>.  From the root dir 
+'make dist' will build a stand alone qgrep binary. <br />
+To build installers you will need <a href="http://www.jrsoftware.org/isinfo.php">Inno
+Setup</a>, and you can run the
+command 'make installer'.  It is likely you will need to change the
+./qgrep/installer/win32/igrep.iss file to match your install path.</p>
+
+<h3>OSX &amp; Linux</h3>
+
+<p>I have not done a very good job of making qgrep fully standalone.  You
+will need to install libarchive-2.8 &amp; lua-5.1 to your system before
+qgrep will build.  </p>
+
+<h2>Plugins</h2>
+
+<p>New to qgrep from version 1.1 is the concept of plugins.  For any
+command that is not 'search', qgrep will evaluate all .lua files in
+your ~/.qgrep/plugins directory.  <strong>This can be viewed as a security
+flaw as these files will run with the same permissions as qgrep.</strong>
+Plugins have full access to standard Lua, with full libraries, as well
+as the API functions detailed below.</p>
+
+<h3>API</h3>
+
+<p><strong><code>defCommand(command_function, command_line_name, short_help_string)</code></strong> <br />
+<code>command_function</code> - the Lua function that will be called when this
+command is run on the command line.  Arguments to this function are
+the arguments on the command line delimited by spaces. <br />
+<code>command_line_name</code> - the name to use on the command line <br />
+<code>short_help_string</code> - a short help string for this command</p>
+
+<p><strong><code>GetProjectOrDie(projectName)</code></strong> <br />
+Use this function to convert a commandline project name to the internal 'project' table that many functions require.  Will quit with a message if project name is not found.</p>
+
+<p><strong><code>iterateArchive(archiveName)</code></strong> <br />
+Given the full path to an archive (zip) file, iterate over the files in that archive.</p>
+
+<p><strong><code>IterateProjectFiles(project)</code></strong> <br />
+Iterate the files in a project.  This function walks the harddrive.</p>
+
+<p><strong><code>Log(...)</code></strong> <br />
+Same as <code>print</code> if qgrep is in verbose mode, otherwise produces no output.</p>
+
+<p><strong><code>walkdir(base, recurse)</code></strong> <br />
+Iterates over all files in a directory.  For example, to print all files in your home directory</p>
+
+<pre><code>for f in walkdir("~/", false) do
+    print(f)
+end
+</code></pre>
+
+<h3>archive API</h3>
+
+<p>These functions are implemented in C and exposed to Lua, they all relate to working with archives.</p>
+
+<p><strong><code>archive.AddFileToArchive(archive, filename)</code></strong> <br />
+<code>archive</code> - the lightuserdata returned by <code>archive.CreateArchive</code>. <br />
+<code>filename</code> - file to be added to the open archive.  </p>
+
+<p><strong><code>archive.ArchiveNext(archiveWalker)</code></strong> <br />
+<code>archiveWalker</code> - lightuserdata object returned from <code>OpenArchive</code>
+Repeated calls will return filenames in the archive.  Returns nil when there are no more files.</p>
+
+<p><strong><code>archive.CloseArchive(archive)</code></strong> <br />
+<code>archive</code> - an archive object <br />
+Closes an archive.</p>
+
+<p><strong><code>archive.CreateArchive(archiveName)</code></strong> <br />
+<code>archiveName</code> - filename to create <br />
+Create a new archive with the given name &amp; return an archive lightuserdata for further use.</p>
+
+<p><strong><code>archive.OpenArchive(archiveName)</code></strong> 
+<code>archiveName</code> - filename of the archive to open. <br />
+Opens an archive for reading, returns an archiveWalker lightuserdata object.</p>
+
+<h3>c API</h3>
+
+<p>This table is the misc set of C functions.</p>
+
+<p><strong><code>c.execute_search(arg_table)</code></strong> <br />
+Searches an archive and calls back into Lua. <br />
+arg_table should have the following keys: <br />
+<code>project</code> - string name of the project to search <br />
+<code>callback</code> - Lua callback function, which must have the signature <code>function(filename, linenumber, linestring)</code> <br />
+<code>regex</code> - string to search for
+<code>caseSensitive</code> - optional, defaults to <code>true</code>.  Set to <code>false</code> if you want case insensitive search
+<code>regexIsLiteral</code> - optional, defaults to <code>false</code>.  Set to <code>true</code> if you want to search for a literal string.</p>
+
+<p><strong><code>c.fileexists(filename)</code></strong> <br />
+<code>filename</code> - file to test existence of  </p>
+
+<p><strong><code>c.fileinfo(filename)</code></strong> <br />
+<code>filename</code> - file to get info from. <br />
+Returns a table with the following keys: <br />
+<code>mtime</code> - number, the modification time of the file <br />
+<code>isdir</code> - boolean, is this path a directory? <br />
+<code>size</code> - size in bytes of the file.  </p>
+
+<p><strong><code>c.isVerbose()</code></strong> <br />
+Returns if <code>true</code> if qgrep is in verbose mode, <code>false</code> otherwise.</p>
+
+<p><strong><code>c.mkdir(dirname)</code></strong> <br />
+<code>dirname</code> - directory to be created. <br />
+Returns the status code from POSIX mkdir  </p>
+
+<p><strong><code>c.qgreppath()</code></strong> <br />
+Returns as a string the Qgrep base path.</p>
+
+<p><strong><code>c.regex(pattern)</code></strong> <br />
+<code>pattern</code> - regex pattern to create. <br />
+Creates an RE2 regular expression matcher from the input <code>pattern</code>.  Returns a userdata table with the following metatable functions <br />
+<code>partialMatch(string)</code> - returns true if the string is a partial for this regex <br />
+<code>fullMatch(string)</code> - returns true if the string is a full for this regex <br />
+Example:</p>
+
+<pre><code>local r = c.regex("foo")
+r:partialMatch("test foo bar") -&gt; true
+r:fullMatch("test foo bar") -&gt; false
+</code></pre>
+
+<h2>Benchmarks</h2>
+
+<p>Benchmarks are a funny thing at the best of times, and even more so when you 
+add in the filesystem caching layer.  I have tested OSX and Windows with
+both hot and cold caches.  qgrep performs about the same with either a 
+hot or cold cache.  find/grep performs much better with a hot cache, and
+on OSX can actually do better than qgrep.  qgrep on Windows is always faster
+than Cygwin's find/grep.  qgrep will function best in an environment that 
+often has a cold cache.  My personal use case is 8 million lines of code
+on a Windows machine that often runs a high IO load under heavy memory pressure.
+The IO and memory pressure comes from compiling those 8 million lines!
+qgrep runs very well in that scenario, still being able to search quickly while
+compiling and linking.
+The benchmarks show searching all source &amp; header files in linux-2.6, 26000 
+files in almost 10 million lines of code.</p>
+
+<h3>Windows</h3>
+
+<p>The first three benchmarks show find/grep and the impact of Windows' file
+caching layer.</p>
+
+<pre><code>$ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+real    2m57.219s
+user    0m6.922s
+sys     0m14.192s
+
+$ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+real    0m10.985s
+user    0m6.395s
+sys     0m10.979s
+
+$ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+real    0m11.078s
+user    0m6.704s
+sys     0m10.773s
+</code></pre>
+
+<p>qgrep is much faster in both the hot and cold cache case.    </p>
+
+<pre><code>$ time qgrep.exe search linux NotFound_
+real    0m5.485s
+user    0m0.015s
+sys     0m0.015s
+
+$ time qgrep.exe search linux NotFound_
+real    0m2.453s
+user    0m0.015s
+sys     0m0.000s
+</code></pre>
+
+<h3>OS X</h3>
+
+<p>The first run is with cold file caches, the next two runs show that OS X 
+does a good job with file caching.  With hot caches, find/grep beats qgrep!</p>
+
+<pre><code>$ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+real    0m25.590s
+user    0m0.862s
+sys 0m3.742s
+
+$ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+real    0m7.667s
+user    0m0.674s
+sys 0m1.151s
+
+$ time find . -iname "*.[ch]" -print0 | xargs -0 grep NotFound_
+real    0m1.211s
+user    0m0.627s
+sys 0m0.593s
+</code></pre>
+
+<p>qgrep runs in the same amount of time with hot or cold file system caches.</p>
+
+<pre><code>$ time qgrep search linux NotFound_
+real 0m2.211s 
+user 0m3.035s 
+sys 0m0.142s
+</code></pre>
+
+<h2>Etc</h2>
+
+<p>qgrep was written by Brad Beveridge, if you find qgrep to be useful a
+donation would be excellent motivation for me to make further
+improvements (such as much improved multicore support!). </p>
+
+<form action="https://www.paypal.com/cgi-bin/webscr" method="post">
+<input type="hidden" name="cmd" value="_s-xclick">
+<input type="hidden" name="encrypted" value="-----BEGIN PKCS7-----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-----END PKCS7-----
+">
+<input type="image" src="https://www.paypal.com/en_US/i/btn/btn_donateCC_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
+<img alt="" border="0" src="https://www.paypal.com/en_US/i/scr/pixel.gif" width="1" height="1">
+</form>
+
+<h2>Credits</h2>
+
+<p>qgrep uses the following libraries, many thanks to their authors</p>
+
+<ul>
+<li><a href="http://code.google.com/p/re2/">RE2</a> provides the regular expression
+code used for matching</li>
+<li><a href="http://code.google.com/p/libarchive/">libarchive</a> provides the code
+used for compressing and decompressing the search material</li>
+<li><a href="http://sourceware.org/pthreads-win32/">PThreads-w32</a> provides
+threading on Windows</li>
+<li><a href="http://www.zlib.net/pigz/">Pigz</a> provided pthread interfacing</li>
+<li><a href="http://www.lua.org/">Lua</a> is the programming language for much of
+qgrep</li>
+</ul>
+
+
+
+<hr>
+<address></address>
+<!-- hhmts start --> Last modified: Sun Dec 26 16:12:23 PST 2010 <!-- hhmts end -->
+</body> </html>
