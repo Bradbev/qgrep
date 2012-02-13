@@ -391,7 +391,7 @@ int C_re2_fullMatch(lua_State* L)
 }
 
 // Compile a string into an RE2 pattern
-// (pattern:string) -> lightuserdata
+// (pattern:string) -> userdata
 int C_re2_compile(lua_State* L)
 {
     re2::RE2* pattern = new re2::RE2(luaL_checkstring(L, 1));
@@ -454,7 +454,8 @@ void test_error(int test, const char* msg)
 // project  - string name of the project
 // callback - function(filename, linenumber, linestring)
 // regex    - regex to search for
-// caseSensitive - 
+// caseSensitive  - optional
+// regexIsLiteral - optional
 int C_executeSearch(lua_State* L)
 {
     const int arg_table = 1;
@@ -470,13 +471,15 @@ int C_executeSearch(lua_State* L)
 	lua_getfield(L, arg_table, "regex");          /* idx:3 */
 	test_error(lua_isstring(L, -1), "execute_search needs a key of 'regex' which must be a string");
 	lua_getfield(L, arg_table, "caseSensitive");  /* idx:4 */
+	lua_getfield(L, arg_table, "regexIsLiteral"); /* idx:5 */
 	// MUST leave the callback on the top of the stack
-	lua_getfield(L, arg_table, "callback");       /* idx:5 */
+	lua_getfield(L, arg_table, "callback");       /* idx:6 */
 	test_error(lua_isfunction(L, -1), "execute_search needs a key of 'callback' which must be a lua function");
 	
 	// marshal into C data
-	const char* regex = luaL_checkstring(L, 3);
-	bool caseSensitive = lua_toboolean(L, 4);
+	const char* regex   = luaL_checkstring(L, 3);
+	bool caseSensitive  = lua_isnil(L, 4) || lua_toboolean(L, 4);
+	bool regexIsLiteral = lua_toboolean(L, 5);
 	
 	GrepParams params;
 	memset(&params, 0, sizeof(params));
@@ -488,6 +491,7 @@ int C_executeSearch(lua_State* L)
 	params.sourceArchiveName = projectFile;
 	params.callbackFunction = luaHitCallback;
 	params.caseSensitive = caseSensitive;
+	params.regexIsLiteral = regexIsLiteral;
 	params.searchPattern = regex;
 	params.callbackContext = (void*)L;
 	ExecuteSearch(&params);
@@ -549,7 +553,7 @@ int C_archive_OpenArchive(lua_State* L)
     return 1;
 }
 
-// (archive:lightuserdata) -> string | nil
+// (archiveWalker:lightuserdata) -> string | nil
 int C_archive_ArchiveNext(lua_State* L)
 {
     ArchiveWalker* aw = (ArchiveWalker*)lua_topointer(L, 1);
