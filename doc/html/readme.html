@@ -120,6 +120,15 @@ the arguments on the command line delimited by spaces. <br />
 <code>command_line_name</code> - the name to use on the command line <br />
 <code>short_help_string</code> - a short help string for this command</p>
 
+<p><strong><code>GetProjectOrDie(projectName)</code></strong> <br />
+Use this function to convert a commandline project name to the internal 'project' table that many functions require.  Will quit with a message if project name is not found.</p>
+
+<p><strong><code>iterateArchive(archiveName)</code></strong> <br />
+Given the full path to an archive (zip) file, iterate over the files in that archive.</p>
+
+<p><strong><code>IterateProjectFiles(project)</code></strong> <br />
+Iterate the files in a project.  This function walks the harddrive.</p>
+
 <p><strong><code>Log(...)</code></strong> <br />
 Same as <code>print</code> if qgrep is in verbose mode, otherwise produces no output.</p>
 
@@ -129,6 +138,75 @@ Iterates over all files in a directory.  For example, to print all files in your
 <pre><code>for f in walkdir("~/", false) do
     print(f)
 end
+</code></pre>
+
+<h3>archive API</h3>
+
+<p>These functions are implemented in C and exposed to Lua, they all relate to working with archives.</p>
+
+<p><strong><code>archive.AddFileToArchive(archive, filename)</code></strong> <br />
+<code>archive</code> - the lightuserdata returned by <code>archive.CreateArchive</code>. <br />
+<code>filename</code> - file to be added to the open archive.  </p>
+
+<p><strong><code>archive.ArchiveNext(archiveWalker)</code></strong> <br />
+<code>archiveWalker</code> - lightuserdata object returned from <code>OpenArchive</code>
+Repeated calls will return filenames in the archive.  Returns nil when there are no more files.</p>
+
+<p><strong><code>archive.CloseArchive(archive)</code></strong> <br />
+<code>archive</code> - an archive object <br />
+Closes an archive.</p>
+
+<p><strong><code>archive.CreateArchive(archiveName)</code></strong> <br />
+<code>archiveName</code> - filename to create <br />
+Create a new archive with the given name &amp; return an archive lightuserdata for further use.</p>
+
+<p><strong><code>archive.OpenArchive(archiveName)</code></strong> 
+<code>archiveName</code> - filename of the archive to open. <br />
+Opens an archive for reading, returns an archiveWalker lightuserdata object.</p>
+
+<h3>c API</h3>
+
+<p>This table is the misc set of C functions.</p>
+
+<p><strong><code>c.execute_search(arg_table)</code></strong> <br />
+Searches an archive and calls back into Lua. <br />
+arg_table should have the following keys: <br />
+<code>project</code> - string name of the project to search <br />
+<code>callback</code> - Lua callback function, which must have the signature <code>function(filename, linenumber, linestring)</code> <br />
+<code>regex</code> - string to search for
+<code>caseSensitive</code> - optional, defaults to <code>true</code>.  Set to <code>false</code> if you want case insensitive search
+<code>regexIsLiteral</code> - optional, defaults to <code>false</code>.  Set to <code>true</code> if you want to search for a literal string.</p>
+
+<p><strong><code>c.fileexists(filename)</code></strong> <br />
+<code>filename</code> - file to test existence of  </p>
+
+<p><strong><code>c.fileinfo(filename)</code></strong> <br />
+<code>filename</code> - file to get info from. <br />
+Returns a table with the following keys: <br />
+<code>mtime</code> - number, the modification time of the file <br />
+<code>isdir</code> - boolean, is this path a directory? <br />
+<code>size</code> - size in bytes of the file.  </p>
+
+<p><strong><code>c.isVerbose()</code></strong> <br />
+Returns if <code>true</code> if qgrep is in verbose mode, <code>false</code> otherwise.</p>
+
+<p><strong><code>c.mkdir(dirname)</code></strong> <br />
+<code>dirname</code> - directory to be created. <br />
+Returns the status code from POSIX mkdir  </p>
+
+<p><strong><code>c.qgreppath()</code></strong> <br />
+Returns as a string the Qgrep base path.</p>
+
+<p><strong><code>c.regex(pattern)</code></strong> <br />
+<code>pattern</code> - regex pattern to create. <br />
+Creates an RE2 regular expression matcher from the input <code>pattern</code>.  Returns a userdata table with the following metatable functions <br />
+<code>partialMatch(string)</code> - returns true if the string is a partial for this regex <br />
+<code>fullMatch(string)</code> - returns true if the string is a full for this regex <br />
+Example:</p>
+
+<pre><code>local r = c.regex("foo")
+r:partialMatch("test foo bar") -&gt; true
+r:fullMatch("test foo bar") -&gt; false
 </code></pre>
 
 <h2>Benchmarks</h2>

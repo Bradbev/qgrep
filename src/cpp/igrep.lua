@@ -1,4 +1,4 @@
-gVersion = "1.2.0"
+gVersion = "1.3.0"
 gVerbose = false
 
 ------------- Util
