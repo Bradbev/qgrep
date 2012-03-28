@@ -562,7 +562,7 @@ void AddFileToArchive(struct archive* a, const char* filename)
 {
     struct archive_entry *entry;
     struct stat st;
-    char buff[8192];
+    char buff[100 * 1024];
     int len;
     int fd;
     
