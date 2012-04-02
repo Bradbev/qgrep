@@ -110,7 +110,8 @@ int lua_NewTable(lua_State* L)
 
 void GetQgrepPath(char* buffer)
 {
-    char* home = getenv("HOME");
+    char* home = getenv("QGREP_HOME");
+	if (!home) home = getenv("HOME");
 #ifdef WIN32
     if (home)
     {
