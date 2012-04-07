@@ -10,7 +10,10 @@ function ReportFileSize(projectName)
       print(string.format("%s\t\t%s", v.size, v.name))
    end
 end
-defCommand(ReportFileSize,  "report-file-sizes", "Sorted list of all files in the project")
+defCommand(ReportFileSize,  "report-file-sizes", "<project> outputs a sorted list of all files in the project")
+defHelp(ReportFileSize, 
+[[Iterate through all project files on the drive and print their size and name.
+]])	
 
 function LuaSearch(projectName, regex)
    local callback = function(filename, linenumber, line)

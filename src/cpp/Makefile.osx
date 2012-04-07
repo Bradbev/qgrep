@@ -5,7 +5,7 @@ INCLUDES = -I$(ARCHIVE)/libarchive/ -I../simplefilewatcher/include/
 LIBDIR = $(BASE)/libs_osx
 LIBS = $(LIBDIR)/libarchive.a $(LIBDIR)/liblua.a $(LIBDIR)/libre2.a -lbz2 -lz
 
-IGREP_SRCS = archive.cpp stream.cpp
+IGREP_SRCS = archive.cpp stream.cpp trigram.cpp
 IGREP_OBJS = $(IGREP_SRCS:.cpp=.o) yarn.o
 
 CFLAGS = -O3 -g -Wall -Werror -fPIC $(INCLUDES) $(DIST_OPTS) -mmacosx-version-min=10.5
