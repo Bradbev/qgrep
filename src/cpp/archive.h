@@ -16,16 +16,22 @@ struct GrepParams
     unsigned int caseSensitive;
     unsigned int searchFilenames;
     unsigned int regexIsLiteral;
+    unsigned int ignoreTrigrams;
 };
 void ExecuteSearch(GrepParams* param);
     
 void ExecuteSimpleSearch(const char* archiveName, const char* options, const char* regex);
     
 // Creation functions    
-struct archive;
-struct archive* CreateArchive(const char* archiveName);
-void AddFileToArchive(struct archive* a, const char* filename);
-void CloseArchive(struct archive* a);
+struct ArchiveCreateParams
+{
+    bool useTrigrams;
+};
+    
+struct QArchive;
+struct QArchive* CreateArchive(const char* archiveName, ArchiveCreateParams* param);
+void AddFileToArchive(struct QArchive* qa, const char* filename);
+void CloseArchive(struct QArchive* qa);
 
 }
 

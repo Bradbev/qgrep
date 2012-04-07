@@ -176,6 +176,15 @@ function ignore(...)
    return { ignored = true, regexs = map(c.regex, arg) }
 end
 
+function is_property(x)
+   return x.property
+end
+
+function property(props)
+   return { property = true, properties = props }
+end
+
+
 MonitorPeriodInMinutes = 10
 function GetMonitorPeriodInSeconds()
    if MonitorPeriodInMinutes and type(MonitorPeriodInMinutes) == "number" then
@@ -194,7 +203,7 @@ function Project(tableArg)
    -- zap the first element of the table so that filters below don't pick up the name
    local name = tableArg[1]
    tableArg[1] = {}
-   local proj = { name = name }
+   local proj = { name = name, properties = { useTrigrams = true } }
    proj.tracked = filter(tracked, tableArg)
    
    -- flatten the ignored expressions
@@ -204,6 +213,14 @@ function Project(tableArg)
 	 setInsert(ignoreExprs, v)
       end
    end
+   
+   -- gather properties
+   for k,v in ipairs(filter(is_property, tableArg)) do
+      for k,v in pairs(v.properties) do
+	 proj.properties[k] = v
+      end
+   end
+    
    proj.ignoreExprs = setToList(ignoreExprs)
    
    proj.archiveFile = c.qgreppath() .. "/" .. name .. ".tgz"
@@ -360,13 +377,19 @@ function FileRename(old, new)
    end
 end
 
-function build(projectName)
+function build(projectName, options)
    local project = GetProjectOrDie(projectName)
    print("Building " .. projectName .. ", may take some time")
+   if options and options:find("T") then
+      project.properties.useTrigrams = false
+   end
+   if project.properties.useTrigrams then
+      print("Including trigram index")
+   end
    local tmpname = os.tmpname()
    local tmpfilenames = os.tmpname()
    local filenamesfile = io.open(tmpfilenames, "w")
-   local a = archive.CreateArchive(tmpname)
+   local a = archive.CreateArchive(tmpname, project.properties)
    local count = 0
    for f in IterateProjectFiles(project) do
       Log("Adding file", f)
@@ -380,6 +403,9 @@ function build(projectName)
    print("Added " .. count .. " files to archive");
    FileRename(tmpname, project.archiveFile)
    FileRename(tmpfilenames, project.filenamesFile)
+   if project.properties.useTrigrams then
+      FileRename(tmpname..".tris", project.archiveFile..".tris")
+   end
    os.remove(project.staleFile)
    
    print("Done building")
@@ -475,17 +501,20 @@ Options are:
   i - causes the search to be case insensitive
   l - treat the regex as a literal string
   f - search only filenames in the project 
+  T - do not use the trigram algorithm when searching
   V - output matches in a format suitable for Visual Studio to jump to.
       The format is <filename> (<linenumber>):<line>
   \\\\ - replace forward slashes (/) with backslashes    
   / - replace backslashes (\\) with forward slashes
 
 Replacing slashes may be useful for editors that expect a certain slash type.]])
+  
+defHelp(build, "the T option disabled trigraph indexing during the build")
 
 defCommand(help,         "help",          "Provides further help for commands")
-defCommand(build,        "build",         "<project> regenerates the database for <project>")
+defCommand(build,        "build",         "<project> [T] regenerates the database for <project>")
 defCommand(listprojects, "projects",      "Lists all known projects")
-defCommand(search_help_only,   "search",        "<project> [iV/\\] <regex> searches for <regex> in the given project")
+defCommand(search_help_only,   "search",        "<project> [liV/\\] <regex> searches for <regex> in the given project")
 defCommand(files,        "files",         "<project> <regex> filters the filenames in <project> through <regex>")
 defCommand(startservice, "start-service", "Begins monitoring all projects ")
 defCommand(version,      "version",       "Prints the version")

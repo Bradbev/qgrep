@@ -20,6 +20,7 @@ extern "C" {
 #include <set>
 #include <string>
 #include "re2/re2.h"
+#include "trigram.h"
 
 // Forward declares
 void lua_ProjectExistsOrDie(const char* projectName);
@@ -472,14 +473,16 @@ int C_executeSearch(lua_State* L)
 	test_error(lua_isstring(L, -1), "execute_search needs a key of 'regex' which must be a string");
 	lua_getfield(L, arg_table, "caseSensitive");  /* idx:4 */
 	lua_getfield(L, arg_table, "regexIsLiteral"); /* idx:5 */
+	lua_getfield(L, arg_table, "ignoreTrigrams"); /* idx:6 */
 	// MUST leave the callback on the top of the stack
-	lua_getfield(L, arg_table, "callback");       /* idx:6 */
+	lua_getfield(L, arg_table, "callback");       /* idx:7 */
 	test_error(lua_isfunction(L, -1), "execute_search needs a key of 'callback' which must be a lua function");
 	
 	// marshal into C data
 	const char* regex   = luaL_checkstring(L, 3);
 	bool caseSensitive  = lua_isnil(L, 4) || lua_toboolean(L, 4);
 	bool regexIsLiteral = lua_toboolean(L, 5);
+	bool ignoreTrigrams = lua_toboolean(L, 6);
 	
 	GrepParams params;
 	memset(&params, 0, sizeof(params));
@@ -492,6 +495,7 @@ int C_executeSearch(lua_State* L)
 	params.callbackFunction = luaHitCallback;
 	params.caseSensitive = caseSensitive;
 	params.regexIsLiteral = regexIsLiteral;
+	params.ignoreTrigrams = ignoreTrigrams;
 	params.searchPattern = regex;
 	params.callbackContext = (void*)L;
 	ExecuteSearch(&params);
@@ -520,28 +524,34 @@ luaL_Reg luaFunctions[] =
     { NULL, NULL}, 
 };
 
-// (archiveName:string) -> lightuserdata
+// (archiveName:string, param_table) -> lightuserdata
 int C_archive_CreateArchive(lua_State* L)
 {
     const char* archiveName = luaL_checkstring(L,1);
-    lua_pushlightuserdata(L, CreateArchive(archiveName));
+    const int param_table = 2;
+    lua_getfield(L, param_table, "useTrigrams");  // index 3
+    bool useTrigrams = false;
+    if (!lua_isnil(L, 3)) useTrigrams = lua_toboolean(L, 3);
+    ArchiveCreateParams params;
+    params.useTrigrams = useTrigrams;
+    lua_pushlightuserdata(L, CreateArchive(archiveName, &params));
     return 1;
 }
 
 // (archive:lightuserdata, filename:string) -> nil
 int C_archive_AddFileToArchive(lua_State* L)
 {
-    struct archive* a = (struct archive*)lua_topointer(L, 1);
+    struct QArchive* qa = (struct QArchive*)lua_topointer(L, 1);
     const char* filename = luaL_checkstring(L, 2);
-    AddFileToArchive(a, filename);
+    AddFileToArchive(qa, filename);
     return 0;
 }
 
 // (archive:lightuserdata) -> nil
 int C_archive_CloseArchive(lua_State* L)
 {
-    struct archive* a = (struct archive*)lua_topointer(L, 1);
-    CloseArchive(a);
+    struct QArchive* qa = (struct QArchive*)lua_topointer(L, 1);
+    CloseArchive(qa);
     return 0;
 }
 
@@ -667,6 +677,10 @@ void FastPathSearch(int argc, const char** argv)
 
 int main(int argc, const char** argv)
 {
+//    const char* test[] = { "", "search", "test", "footbridge" };
+//    FastPathSearch(4, test);
+//    return 0;
+
     if (argc > 1)
     {
 	if (strcmp("v", argv[1]) == 0)
