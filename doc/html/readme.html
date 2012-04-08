@@ -53,6 +53,7 @@ file. </p>
 <h3>Example projects.lua file</h3>
 
 <pre><code>Project{"linux", 
+    properties {useTrigrams = true},   -- defaults to true anyway
     track("~/source/linux-2.6", "\\.c$", "\\.h$"),
     ignore("f.o", "^bar\\.c$") 
 }
@@ -84,6 +85,29 @@ file. </p>
   ignore pattern will never be matched because filenames are tested
   with their full path, ie all files will start with
   <code>~/source/linux-2.6/</code> </p>
+
+<p><strong>properties { key/value properties }</strong> sets properties for the project</p>
+
+<ul>
+<li>useTrigrams: true/false.  Enables or disables trigram usage.  Defaults 
+to true.  Search is much faster &amp; building is about twice as slow.</li>
+</ul>
+
+<h2>How QGrep works</h2>
+
+<p>Before version 1.3.3 qgrep only had one search algorithm, fast brute force.
+During build the search corpus is simply compressed into zip format using 
+libarchive.  Search involves decompressing the archive in one thread and 
+using RE2 to match in another thread.  Search time is dominated by file IO
+when the OS file caches are cold, or unzip CPU time when the file cache is hot.</p>
+
+<p>At version 1.3.3 I added support for trigram indexing.  (see more here
+http://swtch.com/~rsc/regexp/regexp4.html).  This operation creates a second 
+index file.  During search this index file is mmapped and binary search can be 
+employed to winnow the set of files that need to be searched.  After narrowing
+the files are read directly from disk.</p>
+
+<h2>Changes</h2>
 
 <h2>Building from source</h2>
 

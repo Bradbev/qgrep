@@ -10,6 +10,42 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 
+/*
+ * There is some fairly odd code in here (see especially
+ * trigram_save_to_file), but it is all to make trigram searching
+ * fast.
+ * There are two phases to using trigrams and they use different data
+ * structures.
+ * Building:
+ * The algorithm here is to break text streams into trigrams and
+ * associate each trigram with the incoming filename.  Trigrams are
+ * stored in a map, providing O(logn) lookup.  Lookup speed is
+ * critical because there will be n-2 lookups for a project with n
+ * chars (ie, 400,000,000 for linux).  I tried a hashmap (O(1)), but
+ * didn't get faster results.
+ * Each trigram in the map is associated with an int vector.  This
+ * vector contains the indexes of every file this trigram appears in.
+ * Because the index is only going to be increasing the primary
+ * optimization here is to check the last element in the vector & only
+ * insert if the current file doesn't exist.
+ *
+ * Saving/lookup
+ * Saving and lookup are intimately tied, because when doing lookup we
+ * simply mmap the saved file and work with the data structures in the
+ * file.  
+ * The first level of lookup is finding the trigrams in an input
+ * string, for 'foot' the trigrams 'foo' and 'oot' are found by using
+ * a binary search algorithm.  The found structure points into a
+ * vector containing indexes for which files contain that trigram.  We
+ * then run a custom set union by:
+ *  - finding the smallest set & iterating it
+ *  - for each element, try & find that element in all sets.  Only if
+ * that index is in all sets can that file be considered a match.  
+ *  - as each set is searched, we shrink it by moving the lower bound
+ * up 
+ * 
+ */
+
 typedef unsigned int uint;
 
 static bool validchar(char c)
@@ -19,7 +55,10 @@ static bool validchar(char c)
 
 struct Trigram
 {
-    char gram[3];
+    union {
+	char gram[3];
+	uint gram_uint;
+    };
     Trigram()  { Reset(); }
     Trigram(const char* g)  { memcpy(gram, g, 3); };
     // Not safe, debug prints only!
@@ -30,7 +69,7 @@ struct Trigram
 	ret[3] = 0;
 	return ret;
     }
-    void Reset(){ gram[0] = gram[1] = gram[2] = 0; };
+    void Reset(){ gram_uint = 0; }
     bool PushChar(char c)
     {
 	gram[0] = gram[1];
@@ -46,11 +85,7 @@ struct Trigram
     }
     bool operator<(const Trigram& rhs) const
     {
-	for (int i = 0; i < 3; i++)
-	{
-	    if (gram[i] != rhs.gram[i]) return gram[i] < rhs.gram[i];
-	}
-	return false;
+	return gram_uint < rhs.gram_uint;
     }
 };
 
@@ -61,12 +96,16 @@ struct TrigramAndOffset : public Trigram
 };
 
 typedef std::vector<std::string> StringVector;
-typedef std::set<uint> IndexSet;
 typedef std::set<Trigram> TrigramSet;
-typedef std::map<Trigram, IndexSet> TrigramMap;
+typedef std::vector<uint> IndexVector;
+typedef std::map<Trigram, IndexVector> TrigramMap;
 
 struct TrigramSplitter
 {
+    /*
+     * The build struct is used when building up the trigram data
+     * structures.
+     */
     struct
     {
 	// members used when creating 
@@ -74,13 +113,13 @@ struct TrigramSplitter
 	TrigramMap trigrams;
 	uint current_index;
 	Trigram current_trigram;
-    } write;
+    } build;
     
     /*
-     * read_t is written directly to file as is when creating the data
+     * lookup_t is written directly to file as is when creating the data
      * set, and is mmapped when reading back.  See trigram_save_to_file
      */
-    struct read_t
+    struct lookup_t
     {
 	uint number_of_files;
 	uint number_of_tris;
@@ -90,13 +129,13 @@ struct TrigramSplitter
 	uint filename_offset;
 	char data[0];
     };
-    read_t* read;
+    lookup_t* lookup;
 };
 
 TrigramSplitter* trigram_new()
 {
     TrigramSplitter* t = new TrigramSplitter;
-    t->write.current_index = 0;
+    t->build.current_index = 0;
     return t;
 }
 
@@ -107,45 +146,42 @@ void trigram_delete(TrigramSplitter* t)
 
 void trigram_start_file(TrigramSplitter* t, const char* filename)
 {
-    t->write.filenames.push_back(filename);
+    t->build.filenames.push_back(filename);
 }
 
 void trigram_add_data(TrigramSplitter* t, const char* data, uint data_length)
 {
-    Trigram tri = t->write.current_trigram;
-    int fileIndex = t->write.current_index;
-    TrigramSet seenSet;
+    Trigram tri = t->build.current_trigram;
+    uint fileIndex = t->build.current_index;
     for (uint i = 0; i < data_length; i++)
     {
 	if (tri.PushChar(data[i]))
 	{
-	    seenSet.insert(tri);
+	    IndexVector& iv = t->build.trigrams[tri];
+	    if (iv.empty() || iv[iv.size()-1] != fileIndex)
+	    {
+		iv.push_back(fileIndex);
+	    }
 	}
     }
-    TrigramSet::iterator end = seenSet.end();
-    for (TrigramSet::iterator i = seenSet.begin();
-	 i != end; ++i)
-    {
-	t->write.trigrams[*i].insert(fileIndex);
-    }
-    t->write.current_trigram = tri;
+    t->build.current_trigram = tri;
 }
 
 void trigram_stop_file(TrigramSplitter* t)
 {
-    t->write.current_index++;
-    t->write.current_trigram.Reset();
+    t->build.current_index++;
+    t->build.current_trigram.Reset();
 }
 
 uint* get_trigram_set(TrigramSplitter* t, Trigram* tri, uint* set_count_out)
 {
-    TrigramAndOffset* trigrams = (TrigramAndOffset*)&t->read->data[t->read->trigram_offset];
-    TrigramAndOffset* lower = std::lower_bound(trigrams, &trigrams[t->read->number_of_tris], *((TrigramAndOffset*)tri));
+    TrigramAndOffset* trigrams = (TrigramAndOffset*)&t->lookup->data[t->lookup->trigram_offset];
+    TrigramAndOffset* lower = std::lower_bound(trigrams, &trigrams[t->lookup->number_of_tris], *((TrigramAndOffset*)tri));
 //    printf("%c%c%c\n", tri->gram[0], tri->gram[1], tri->gram[2]);
  //   if (lower) printf("lower %c%c%c\n", lower->gram[0], lower->gram[1], lower->gram[2]);
     if (lower && memcmp(lower->gram, tri->gram, 3) == 0)
     {
-	uint* tri_set = (uint*)&t->read->data[lower->setOffset];
+	uint* tri_set = (uint*)&t->lookup->data[lower->setOffset];
 	*set_count_out = lower->setSize;
 	return tri_set;
     }
@@ -155,13 +191,13 @@ uint* get_trigram_set(TrigramSplitter* t, Trigram* tri, uint* set_count_out)
 
 const char* get_filename_from_index(TrigramSplitter* t, uint index)
 {
-    if (index >= t->read->number_of_files) 
+    if (index >= t->lookup->number_of_files) 
     {
-	printf("index is %d >= %d - too big\n", index, t->read->number_of_files);
+	printf("index is %d >= %d - too big\n", index, t->lookup->number_of_files);
 	return NULL;
     }
-    int*  file_index = (int*)&t->read->data[t->read->file_index_offset];
-    const char* filenames = (const char*)&t->read->data[t->read->filename_offset];
+    int*  file_index = (int*)&t->lookup->data[t->lookup->file_index_offset];
+    const char* filenames = (const char*)&t->lookup->data[t->lookup->filename_offset];
     return filenames + file_index[index];
 }
 
@@ -200,20 +236,22 @@ bool is_in_all_sets(std::map<Trigram, TrigramIntSet>& triToSetMap, uint test_ind
 
 bool trigram_string_is_searchable(const char* string)
 {
+    int len = 0;
     if (!string) return false;
     while (*string)
     {
 	if (!validchar(*string)) return false;
+	len++;
 	string++;
     }
-    return true;
+    return len > 2;
 }
 
 bool trigram_iterate_matching_files(TrigramSplitter* t, const char* string_to_find, void* context, callback_fn callback)
 {
 #if 0
-    TrigramAndOffset* trigrams = (TrigramAndOffset*)&t->read->data[t->read->trigram_offset];
-    for (uint i = 0; i < t->read->number_of_tris; i++)
+    TrigramAndOffset* trigrams = (TrigramAndOffset*)&t->lookup->data[t->lookup->trigram_offset];
+    for (uint i = 0; i < t->lookup->number_of_tris; i++)
     {
 	printf("%s\n", trigrams[i].AsStr());
     }
@@ -292,10 +330,10 @@ bool trigram_iterate_matching_files(TrigramSplitter* t, const char* string_to_fi
 void trigram_save_to_file(TrigramSplitter* t, const char* filename)
 {
     /*
-     * This is a bit complex, but basically we setup the read_t data
+     * This is a bit complex, but basically we setup the lookup_t data
      * in memory in one big block so we can mmap a file & directly use
      * that memory.
-     * The format for the data[] section in the read_t struct is
+     * The format for the data[] section in the lookup_t struct is
      * - an array of uint32s * number_of_files.  This lets us map from
      * a file index to an offset in the data block that contains the
      * filename.
@@ -309,18 +347,18 @@ void trigram_save_to_file(TrigramSplitter* t, const char* filename)
     int data_size = 0;
     // uint32<number_of_files> - file index to name offset mapping
     int file_index_offset = 0;
-    int file_count = t->write.filenames.size();
+    int file_count = t->build.filenames.size();
     data_size += file_count * sizeof(uint);
     
     // trigramAndOffset<number_of_trigrams> - trigram vector
     int trigram_offset = data_size;
-    int tri_count = t->write.trigrams.size();
+    int tri_count = t->build.trigrams.size();
     data_size += tri_count * sizeof(TrigramAndOffset);
     
     // trigram set data
     int trigram_set_offset = data_size;
-    TrigramMap::iterator tend = t->write.trigrams.end();
-    for (TrigramMap::iterator i = t->write.trigrams.begin();
+    TrigramMap::iterator tend = t->build.trigrams.end();
+    for (TrigramMap::iterator i = t->build.trigrams.begin();
 	 i != tend; ++i)
     {
 	data_size += (i->second.size()) * sizeof(uint);
@@ -328,26 +366,26 @@ void trigram_save_to_file(TrigramSplitter* t, const char* filename)
     
     // filenames
     int filename_offset = data_size;
-    StringVector::iterator s_end = t->write.filenames.end();
-    for (StringVector::iterator i = t->write.filenames.begin();
+    StringVector::iterator s_end = t->build.filenames.end();
+    for (StringVector::iterator i = t->build.filenames.begin();
 	 i != s_end; ++i)
     {
 	data_size += i->length() + 1;
     }
     //printf("Filesize is %d\n", data_size);
-    t->read = (TrigramSplitter::read_t*)malloc(data_size);
-    t->read->number_of_files = file_count;
-    t->read->number_of_tris = tri_count;
-    t->read->file_index_offset = file_index_offset;
-    t->read->trigram_offset = trigram_offset;
-    t->read->trigram_set_offset = trigram_set_offset;
-    t->read->filename_offset = filename_offset;
+    t->lookup = (TrigramSplitter::lookup_t*)malloc(data_size+10000);
+    t->lookup->number_of_files = file_count;
+    t->lookup->number_of_tris = tri_count;
+    t->lookup->file_index_offset = file_index_offset;
+    t->lookup->trigram_offset = trigram_offset;
+    t->lookup->trigram_set_offset = trigram_set_offset;
+    t->lookup->filename_offset = filename_offset;
     
-    int*  file_index = (int*)&t->read->data[file_index_offset];
-    char* filenames = (char*)&t->read->data[filename_offset];
+    int*  file_index = (int*)&t->lookup->data[file_index_offset];
+    char* filenames = (char*)&t->lookup->data[filename_offset];
     int offset = 0;
     int count = 0;
-    for (StringVector::iterator i = t->write.filenames.begin();
+    for (StringVector::iterator i = t->build.filenames.begin();
 	 i != s_end; ++i, ++count)
     {
 	file_index[count] = offset;
@@ -355,9 +393,9 @@ void trigram_save_to_file(TrigramSplitter* t, const char* filename)
 	offset += i->length() + 1;
     }
     
-    TrigramAndOffset* trigrams = (TrigramAndOffset*)&t->read->data[trigram_offset];
+    TrigramAndOffset* trigrams = (TrigramAndOffset*)&t->lookup->data[trigram_offset];
     count = 0;
-    for (TrigramMap::iterator i = t->write.trigrams.begin();
+    for (TrigramMap::iterator i = t->build.trigrams.begin();
 	 i != tend; ++i, ++count)
     {
 //	const Trigram* tri = &i->first;
@@ -365,9 +403,9 @@ void trigram_save_to_file(TrigramSplitter* t, const char* filename)
 	
 	memcpy(&trigrams[count], &i->first, sizeof(Trigram));
 	trigrams[count].setOffset = trigram_set_offset;
+	int* tri_sets = (int*)&t->lookup->data[trigram_set_offset];
 	trigrams[count].setSize = i->second.size();
-	int* tri_sets = (int*)&t->read->data[trigram_set_offset];
-	for (IndexSet::iterator it = i->second.begin();
+	for (IndexVector::iterator it = i->second.begin();
 	     it != i->second.end(); ++it)
 	{
 	    *tri_sets++ = *it;
@@ -385,16 +423,16 @@ void trigram_save_to_file(TrigramSplitter* t, const char* filename)
     //trigram_iterate_matching_files(t, "footbridge");
     
     ///////////////////////////
-//     printf("number_of_files; %d\n", (int)t->read->number_of_files);
-//     printf("number_of_tris; %d\n", (int)t->read->number_of_tris);
-//     printf("file_index_offset; %d\n", (int)t->read->file_index_offset);
-//     printf("trigram_offset; %d\n", (int)t->read->trigram_offset);
-//     printf("trigram_set_offset; %d\n", (int)t->read->trigram_set_offset);
-//     printf("filename_offset; %d\n", (int)t->read->filename_offset);
+//     printf("number_of_files; %d\n", (int)t->lookup->number_of_files);
+//     printf("number_of_tris; %d\n", (int)t->lookup->number_of_tris);
+//     printf("file_index_offset; %d\n", (int)t->lookup->file_index_offset);
+//     printf("trigram_offset; %d\n", (int)t->lookup->trigram_offset);
+//     printf("trigram_set_offset; %d\n", (int)t->lookup->trigram_set_offset);
+//     printf("filename_offset; %d\n", (int)t->lookup->filename_offset);
     FILE* f = fopen(filename, "w");
     if (f)
     {
-	fwrite(t->read, sizeof(t->read) + data_size, 1, f);
+	fwrite(t->lookup, sizeof(TrigramSplitter::lookup_t) + data_size, 1, f);
     }
     fclose(f);
 }
@@ -421,14 +459,14 @@ TrigramSplitter* trigram_load_from_file(const char* filename)
     void* mem = malloc(st.st_size);
     read(fd, mem, st.st_size);
 #endif
-    t->read = (TrigramSplitter::read_t*)mem;
+    t->lookup = (TrigramSplitter::lookup_t*)mem;
 #if 0
-    printf("number_of_files; %d\n", (int)t->read->number_of_files);
-    printf("number_of_tris; %d\n", (int)t->read->number_of_tris);
-    printf("file_index_offset; %d\n", (int)t->read->file_index_offset);
-    printf("trigram_offset; %d\n", (int)t->read->trigram_offset);
-    printf("trigram_set_offset; %d\n", (int)t->read->trigram_set_offset);
-    printf("filename_offset; %d\n", (int)t->read->filename_offset);
+    printf("number_of_files; %d\n", (int)t->lookup->number_of_files);
+    printf("number_of_tris; %d\n", (int)t->lookup->number_of_tris);
+    printf("file_index_offset; %d\n", (int)t->lookup->file_index_offset);
+    printf("trigram_offset; %d\n", (int)t->lookup->trigram_offset);
+    printf("trigram_set_offset; %d\n", (int)t->lookup->trigram_set_offset);
+    printf("filename_offset; %d\n", (int)t->lookup->filename_offset);
 #endif
     return t;
 }
