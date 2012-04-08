@@ -446,15 +446,37 @@ struct TrigramContext
 void trigram_callback(void* vcontext, const char* filename)
 {
     TrigramContext* context = (TrigramContext*)vcontext;
-    FILE *f = fopen(filename, "rb");
-    if (f)
+    
+    if (!SetContains(gDeletedFiles, filename))
     {
-	context->handledFileSet->insert(CopyString(filename));
-	ExecuteContentSearch(context->dataStream, context->qa, f, NULL, filename, context->context);
-	fclose(f);
+	FILE *f = fopen(filename, "rb");
+	if (f)
+	{
+	    context->handledFileSet->insert(CopyString(filename));
+	    ExecuteContentSearch(context->dataStream, context->qa, f, NULL, filename, context->context);
+	    fclose(f);
+	}
     }
 }
 
+/*
+ * ExecuteSearch has gotten very hairy, and should be refactored.
+ * The intended logic goes as such
+ * - If it is valid to search using trigram indexing, then:
+ *   1) Search using trigrams.  To avoid rehitting stalefiles, add
+ *      every searched file to the staleFilesThatHaveBeenSearched set
+ *   2) Skip reading the archive entirely
+ *   3) Do the same handling for stalefiles & wait for regex streams
+ *
+ * - Search the archive by:
+ *   1) iterating all files in the archive, if a file is deleted, skip
+ *      it.  If a file is 'stale' then skip it in the archive & search
+ *      the actual file on disk
+ *
+ * - Directly search any files that have been added to disk & are
+ *   therefore not indexed.
+ * - Wait for the RE2 threads to complete
+ */
 void ExecuteSearch(GrepParams* param)
 {
   struct archive_entry *entry;
@@ -493,7 +515,6 @@ void ExecuteSearch(GrepParams* param)
       TrigramSplitter* ts = trigram_load_from_file(trifile);
       if (ts && trigram_string_is_searchable(param->searchPattern))
       {
-	  printf("doing trigram\n");
 	  trigram_iterate_matching_files(ts, param->searchPattern, &tri_context, trigram_callback);
 	  goto skip_archive;
       }
@@ -512,7 +533,6 @@ void ExecuteSearch(GrepParams* param)
 	  printf("FATAL: %s", archive_error_string(cacheArchive));
 	  exit(1);
       }
-  
   
       while (archive_read_next_header(cacheArchive, &entry) == ARCHIVE_OK) {
 	  const char* entryName = archive_entry_pathname(entry);
