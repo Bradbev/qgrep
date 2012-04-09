@@ -1,4 +1,4 @@
-gVersion = "1.3.3"
+gVersion = "1.3.4"
 gVerbose = false
 
 ------------- Util
@@ -377,6 +377,14 @@ function FileRename(old, new)
    end
 end
 
+function scanstalefiles(projectName)
+   local project = GetProjectOrDie(projectName)
+   print("Scanning project for stale files, may take a little while")
+   CreateProjectStaleFiles(project)
+end
+defHelp(scanstalefiles,
+"Check modification times and only update the stalefile.  Do not rebuild the full project indexes.")
+
 function build(projectName, options)
    local project = GetProjectOrDie(projectName)
    print("Building " .. projectName .. ", may take some time")
@@ -514,7 +522,8 @@ defHelp(build, "the T option disabled trigraph indexing during the build")
 defCommand(help,         "help",          "Provides further help for commands")
 defCommand(build,        "build",         "<project> [T] regenerates the database for <project>")
 defCommand(listprojects, "projects",      "Lists all known projects")
-defCommand(search_help_only,   "search",        "<project> [liV/\\] <regex> searches for <regex> in the given project")
+defCommand(search_help_only,   "search",  "<project> [liV/\\] <regex> searches for <regex> in the given project")
+defCommand(scanstalefiles, "scan-stale",  "<project> scans for stale files in the project.  Does not rebuild project")
 defCommand(files,        "files",         "<project> <regex> filters the filenames in <project> through <regex>")
 defCommand(startservice, "start-service", "Begins monitoring all projects ")
 defCommand(version,      "version",       "Prints the version")
