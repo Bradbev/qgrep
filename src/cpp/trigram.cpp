@@ -4,10 +4,16 @@
 #include <vector>
 #include <string>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <algorithm>
 #include "assert.h"
 #include <sys/stat.h>
+#ifndef WIN32
 #include <sys/mman.h>
+#else
+#include <windows.h>
+#endif
 #include <fcntl.h>
 
 /*
@@ -177,8 +183,8 @@ uint* get_trigram_set(TrigramSplitter* t, Trigram* tri, uint* set_count_out)
 {
     TrigramAndOffset* trigrams = (TrigramAndOffset*)&t->lookup->data[t->lookup->trigram_offset];
     TrigramAndOffset* lower = std::lower_bound(trigrams, &trigrams[t->lookup->number_of_tris], *((TrigramAndOffset*)tri));
-//    printf("%c%c%c\n", tri->gram[0], tri->gram[1], tri->gram[2]);
- //   if (lower) printf("lower %c%c%c\n", lower->gram[0], lower->gram[1], lower->gram[2]);
+    //printf("%s\n", tri->AsStr());
+    //if (lower) printf("lower %s, tri %s\n", lower->AsStr(), tri->AsStr());
     if (lower && memcmp(lower->gram, tri->gram, 3) == 0)
     {
 	uint* tri_set = (uint*)&t->lookup->data[lower->setOffset];
@@ -429,7 +435,7 @@ void trigram_save_to_file(TrigramSplitter* t, const char* filename)
 //     printf("trigram_offset; %d\n", (int)t->lookup->trigram_offset);
 //     printf("trigram_set_offset; %d\n", (int)t->lookup->trigram_set_offset);
 //     printf("filename_offset; %d\n", (int)t->lookup->filename_offset);
-    FILE* f = fopen(filename, "w");
+    FILE* f = fopen(filename, "wb");
     if (f)
     {
 	fwrite(t->lookup, sizeof(TrigramSplitter::lookup_t) + data_size, 1, f);
@@ -448,16 +454,16 @@ TrigramSplitter* trigram_load_from_file(const char* filename)
     }
     struct stat st;
     fstat(fd, &st);
-#if 1
+#ifdef WIN32
+	// it is FASTER on win32 to NOT use mmap! (wtf)
+    void* mem = malloc(st.st_size);
+    read(fd, mem, st.st_size);
+#else
     void* mem = mmap(NULL, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
     if (!mem)
     {
-	printf("mmap failed for %s!\n", filename);
+		printf("mmap failed for %s!\n", filename);
     }
-#else
-    printf("Mallocing %d\n", (int)st.st_size);
-    void* mem = malloc(st.st_size);
-    read(fd, mem, st.st_size);
 #endif
     t->lookup = (TrigramSplitter::lookup_t*)mem;
 #if 0

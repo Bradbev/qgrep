@@ -5,10 +5,10 @@ INCLUDES = -I $(ARCHIVE)/include/ -I $(BASE)/re2_win32/ -I $(BASE)/lua-5.1.4/src
 LIBDIR = $(BASE)/libs_win32
 LIBS = $(LIBDIR)/libarchive.dll.a $(LIBDIR)/libre2.so $(LIBDIR)/pthreadGC2.dll $(LIBDIR)/liblua.a
 
-IGREP_SRCS = archive.cpp stream.cpp
+IGREP_SRCS = archive.cpp stream.cpp trigram.cpp
 IGREP_OBJS = $(IGREP_SRCS:.cpp=.o) yarn.o
 
-CFLAGS = -O0 -g -Wall $(INCLUDES) $(DIST_OPTS) 
+CFLAGS = -O3 -g -Wall $(INCLUDES) $(DIST_OPTS) 
 CPPFLAGS = $(CFLAGS) 
 CC = gcc
 
