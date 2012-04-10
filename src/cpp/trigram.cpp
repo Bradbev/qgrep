@@ -449,8 +449,8 @@ TrigramSplitter* trigram_load_from_file(const char* filename)
     int fd = open(filename, O_RDONLY);
     if (fd == -1)
     {
-	printf("Unable to open %s\n", filename);
-	return 0;
+		//printf("Unable to open %s\n", filename);
+		return 0;
     }
     struct stat st;
     fstat(fd, &st);
