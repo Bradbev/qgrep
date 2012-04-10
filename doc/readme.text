@@ -39,7 +39,7 @@ file.
 ### Example projects.lua file
 
     Project{"linux", 
-        properties {useTrigrams = true},   -- defaults to true anyway
+        property {useTrigrams = true},   -- defaults to true anyway
         track("~/source/linux-2.6", "\\.c$", "\\.h$"),
         ignore("f.o", "^bar\\.c$") 
     }
@@ -71,7 +71,7 @@ file.
   with their full path, ie all files will start with
   `~/source/linux-2.6/` 
   
-**properties { key/value properties }** sets properties for the project
+**property { key/value properties }** sets properties for the project
 
 - useTrigrams: true/false.  Enables or disables trigram usage.  Defaults 
 to true.  Search is much faster & building is about twice as slow.

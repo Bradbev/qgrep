@@ -477,8 +477,10 @@ void trigram_callback(void* vcontext, const char* filename)
  *   therefore not indexed.
  * - Wait for the RE2 threads to complete
  */
+static unsigned int gHitCount;
 void ExecuteSearch(GrepParams* param)
 {
+  gHitCount = 0;
   struct archive_entry *entry;
   int r;
   StringSet staleFilesThatHaveBeenSearched;
@@ -608,7 +610,7 @@ skip_archive:
       FILE* file = OpenFile(baseDirectory, *i);
       if (file)
       {
-	  ExecuteContentSearch(dataStream, NULL, file, NULL, *i, context);
+	  ExecuteContentSearch(dataStream, &cacheQArchive, file, NULL, *i, context);
 	  fclose(file);
 	  file = NULL;
       }
@@ -621,6 +623,11 @@ skip_archive:
   PutWriteBlock(dataStream);
   //printf("Waiting on join\n");
   join(consumer);
+  
+  if (param->printSummary)
+  {
+	  printf("Search complete, found %d matches\n", gHitCount);
+  }
   
   delete context->pattern;
   delete context;
@@ -716,6 +723,7 @@ static void ReplaceChars(std::string& s, char from, char to)
 
 static void grepFormatHit(void* context, const char* filename, unsigned int lineNumber, const char* lineStart, const char* lineEnd)
 {
+	gHitCount++;
     if (gReplaceSlashesTo)
     {
 	std::string s(filename);
@@ -732,6 +740,7 @@ static void grepFormatHit(void* context, const char* filename, unsigned int line
 
 static void visualStudioHitFormat(void* context, const char* filename, unsigned int lineNumber, const char* lineStart, const char* lineEnd)
 {
+	gHitCount++;
     if (gReplaceSlashesTo)
     {
 		std::string s(filename);
@@ -755,6 +764,7 @@ void ExecuteSimpleSearch(const char* archiveName, const char* options, const cha
     bool visualStudioHit = false;
     bool regexIsLiteral = false;
     bool ignoreTrigrams = false;
+    bool printSummary = false;
     
     while (*options)
     {
@@ -764,7 +774,8 @@ void ExecuteSimpleSearch(const char* archiveName, const char* options, const cha
 	case 'l': regexIsLiteral = true; break;
 	case 'i': caseSensitive = false; break;
 	case 'f': searchFilenames = true; break;
-	case 'V': visualStudioHit = true; break;
+	case 'V': visualStudioHit = true; printSummary = true; break;
+	case 's': printSummary = true; break;
 	case '\\': gReplaceSlashesTo = '\\'; gReplaceSlashesFrom = '/'; break;
 	case '/': gReplaceSlashesTo = '/';   gReplaceSlashesFrom = '\\'; break;
 	default:
@@ -786,6 +797,7 @@ void ExecuteSimpleSearch(const char* archiveName, const char* options, const cha
     params.searchFilenames = searchFilenames;
     params.regexIsLiteral = regexIsLiteral;
     params.ignoreTrigrams = ignoreTrigrams;
+    params.printSummary = printSummary;
     params.callbackContext = (void*)searchFilenames;
     
     ExecuteSearch(&params);

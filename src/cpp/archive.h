@@ -17,6 +17,7 @@ struct GrepParams
     unsigned int searchFilenames;
     unsigned int regexIsLiteral;
     unsigned int ignoreTrigrams;
+	unsigned int printSummary;
 };
 void ExecuteSearch(GrepParams* param);
     
