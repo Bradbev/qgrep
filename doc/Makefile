@@ -10,7 +10,7 @@ html/%.html: %.text Makefile
 
 txt/%.txt: %.text Makefile
 	@echo Text processing $<
-	@cat $< | lua untangle.lua txt >> $@
+	@cat $< | lua untangle.lua txt > $@
 
 all:	$(HTML_FILES) $(TXT_FILES)
 
