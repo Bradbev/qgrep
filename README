@@ -1,3 +1,5 @@
+Github page at http://bradbev.github.com/qgrep/
+
 Qgrep is very similar to grep, but faster.  It is faster because it
 builds a database of the target search corpus.  The database is simply
 a zip file, but works well due to text generally compressing very
