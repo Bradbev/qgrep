@@ -1,9 +1,19 @@
 # qgrep (Quick Grep)
-Super fast full text grep for programmers
+Super fast full text grep for programmers.  qgrep is now free and can 
+be found on [github](https://github.com/Bradbev/qgrep) under a BSD license.
 
 -----------------------
-## NEWS!
-qgrep is now free and can be found on [github](https://github.com/Bradbev/qgrep) under a BSD license.
+qgrep is very similar to grep, but faster.  It is faster because it
+builds a database of the target search corpus.  The database is simply
+a zip file, but works well due to text generally compressing very
+well.  Compression is important because it reduces the IO load from
+physical hardware.
+
+I originally started Qgrep with the hope of making a little bit of
+cash out of it, sadly that has not happened (I'm probably not good at
+marketing!) so I am releasing Qgrep under the BSD license.
+
+Enjoy!
 
 ## Introduction 
 Programmers commonly need to search code, faster searching makes for

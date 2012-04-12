@@ -9,13 +9,22 @@
 
 <h1>qgrep (Quick Grep)</h1>
 
-<p>Super fast full text grep for programmers</p>
+<p>Super fast full text grep for programmers.  qgrep is now free and can 
+be found on <a href="https://github.com/Bradbev/qgrep">github</a> under a BSD license.</p>
 
 <hr />
 
-<h2>NEWS!</h2>
+<p>qgrep is very similar to grep, but faster.  It is faster because it
+builds a database of the target search corpus.  The database is simply
+a zip file, but works well due to text generally compressing very
+well.  Compression is important because it reduces the IO load from
+physical hardware.</p>
 
-<p>qgrep is now free and can be found on <a href="https://github.com/Bradbev/qgrep">github</a> under a BSD license.</p>
+<p>I originally started Qgrep with the hope of making a little bit of
+cash out of it, sadly that has not happened (I'm probably not good at
+marketing!) so I am releasing Qgrep under the BSD license.</p>
+
+<p>Enjoy!</p>
 
 <h2>Introduction</h2>
 
@@ -37,8 +46,9 @@ qgrep runs on OS X and Windows, with a Linux port coming soon.</p>
 <p>qgrep expects to find a configuration file in a specific place.  For
 *nix systems the file is <code>~/.qgrep/projects.lua</code></p>
 
-<p>For Windows the file is <code>$(HOME)/.qgrep/projects.lua</code> if it exists, or
-<code>$(HOMEDRIVE)$(HOMEPATH)/.qgrep/projects.lua</code> otherwise.</p>
+<p>For Windows the file is (in test order) <code>$(QGREP_HOME)/.qgrep/projects.lua</code> if it exists, or 
+$(HOME)/.qgrep/projects.lua<code>if it exists, or
+</code>$(HOMEDRIVE)$(HOMEPATH)/.qgrep/projects.lua` otherwise.</p>
 
 <p>If the projects.lua file cannot be found, qgrep will offer to create
 the expected directory and config file. A large part of qgrep's
@@ -53,7 +63,7 @@ file. </p>
 <h3>Example projects.lua file</h3>
 
 <pre><code>Project{"linux", 
-    properties {useTrigrams = true},   -- defaults to true anyway
+    property {useTrigrams = true},   -- defaults to true anyway
     track("~/source/linux-2.6", "\\.c$", "\\.h$"),
     ignore("f.o", "^bar\\.c$") 
 }
@@ -86,7 +96,7 @@ file. </p>
   with their full path, ie all files will start with
   <code>~/source/linux-2.6/</code> </p>
 
-<p><strong>properties { key/value properties }</strong> sets properties for the project</p>
+<p><strong>property { key/value properties }</strong> sets properties for the project</p>
 
 <ul>
 <li>useTrigrams: true/false.  Enables or disables trigram usage.  Defaults 
@@ -105,9 +115,8 @@ when the OS file caches are cold, or unzip CPU time when the file cache is hot.<
 http://swtch.com/~rsc/regexp/regexp4.html).  This operation creates a second 
 index file.  During search this index file is mmapped and binary search can be 
 employed to winnow the set of files that need to be searched.  After narrowing
-the files are read directly from disk.</p>
-
-<h2>Changes</h2>
+the files are read directly from disk.  At the moment the trigram optimization 
+only applies for literal strings.</p>
 
 <h2>Building from source</h2>
 
