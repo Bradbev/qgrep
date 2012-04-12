@@ -3,6 +3,7 @@ ifeq ($(shell uname -s), Darwin)
 PLATFORM = osx
 docs:
 	make -C doc dist
+	cp doc/txt/readme.txt ./README
 .PHONY: docs
 
 lib_copy:
