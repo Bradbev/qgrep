@@ -66,26 +66,18 @@ struct RegexMatchState
     matchHitCallback callbackFunction;
     void* context;
     RE2* pattern;
+    RE2* secondPhasePattern;
     // Internal use
     const char* filename;
     unsigned int currentLineCount;
 };
 
-// Ick, this leaks like a sieve :(
-char* CopyString(const char* s)
-{
-    int len = strlen(s);
-    char* ret = (char*)malloc(len+1);
-    memcpy(ret, s, len);
-    ret[len] = 0;
-    return ret;
-}
-
-void InitMatchState(RegexMatchState* state, RE2* pattern, matchHitCallback callbackFunction, void* callbackContext)
+void InitMatchState(RegexMatchState* state, RE2* pattern, RE2* secondPhasePattern, matchHitCallback callbackFunction, void* callbackContext)
 {
     state->callbackFunction = callbackFunction;
     state->context = callbackContext;
     state->pattern = pattern;
+    state->secondPhasePattern = secondPhasePattern;
     state->filename = NULL;
     state->currentLineCount = 0;
 }
@@ -96,6 +88,7 @@ struct ConsumerThreadContext
     matchHitCallback callbackFunction;
     void* callbackContext;
     RE2* pattern;
+    RE2* secondPhasePattern;
 };
 
 template <class T, class K>
@@ -132,11 +125,26 @@ void MatchInBlock(RegexMatchState* state, NamedDataBlock* block)
 	    }
 	    if (RE2::PartialMatch(StringPiece(lineStart, lineEnd - lineStart), *(state->pattern)))
 	    {
-		state->callbackFunction(state->context,
-					GetNameFromBlock(block),
-					lineCount,
-					lineStart,
-					lineEnd);
+		bool doCallback = true;
+		if (state->secondPhasePattern)
+		{
+		    char output_line[4096] = {0};
+		    int num_chars = snprintf(output_line, 4096, "%s:", GetNameFromBlock(block));
+		    int line_len = lineEnd - lineStart;
+		    int left = 4096 - num_chars;
+		    int to_copy = left < line_len ? left : line_len;
+		    memcpy(&output_line[num_chars], lineStart, to_copy);
+		    doCallback = RE2::PartialMatch(StringPiece(output_line, num_chars + to_copy), *(state->secondPhasePattern));
+		}
+		
+		if (doCallback)
+		{
+		    state->callbackFunction(state->context,
+					    GetNameFromBlock(block),
+					    lineCount,
+					    lineStart,
+					    lineEnd);
+		}
 	    }
 	    lineStart = lineEnd + 1;
 	};
@@ -254,11 +262,12 @@ void grepThreadFn(void* rawContext)
     Stream* s = context->dataStream;
     matchHitCallback callback = context->callbackFunction;
     RE2* pattern = context->pattern;
+    RE2* secondPhasePattern = context->secondPhasePattern;
     
     RegexMatchState state;
     while (running)
     {
-	InitMatchState(&state, pattern, callback, context->callbackContext);
+	InitMatchState(&state, pattern, secondPhasePattern, callback, context->callbackContext);
 	count++;
 	unsigned int blockSize;
 	NamedDataBlock* block = (NamedDataBlock*)GetReadBlock(s, &blockSize);
@@ -361,7 +370,7 @@ void LargeFileFallback(struct QArchive* qa, FILE* f, NamedDataBlock* alreadyRead
     BlockUntilStreamIsEmpty(s);
     // do match
     RegexMatchState state;
-    InitMatchState(&state, context->pattern, context->callbackFunction, context->callbackContext);
+    InitMatchState(&state, context->pattern, context->secondPhasePattern, context->callbackFunction, context->callbackContext);
     MatchInBlock(&state, block);
     free(block);
 };
@@ -378,7 +387,7 @@ void LoadStaleSets(const char* filename)
 	{
 	    // remove trailing \n
 	    line[strlen(line)-1] = 0;
-	    char* str = CopyString(line);
+	    char* str = strdup(line);
 	    if (str[0] == '-')
 		gDeletedFiles.insert(&str[1]);
 	    else
@@ -452,7 +461,7 @@ void trigram_callback(void* vcontext, const char* filename)
 	FILE *f = fopen(filename, "rb");
 	if (f)
 	{
-	    context->handledFileSet->insert(CopyString(filename));
+	    context->handledFileSet->insert(strdup(filename));
 	    ExecuteContentSearch(context->dataStream, context->qa, f, NULL, filename, context->context);
 	    fclose(f);
 	}
@@ -496,6 +505,12 @@ void ExecuteSearch(GrepParams* param)
   options.set_case_sensitive(param->caseSensitive);
   options.set_literal(param->regexIsLiteral);
   context->pattern = new RE2(param->searchPattern, options);
+  if (param->secondPhasePattern)
+  {
+      RE2::Options nocase;
+      nocase.set_case_sensitive(false);
+      context->secondPhasePattern = new RE2(param->secondPhasePattern, nocase);
+  }
   
   thread* consumer = launch(grepThreadFn, context);
   
@@ -552,7 +567,7 @@ void ExecuteSearch(GrepParams* param)
 	      if (RE2::PartialMatch(entryName, *(context->pattern)))
 	      {
 		  param->callbackFunction(param->callbackContext, entryName, 1, 0, 0);
-		  staleFilesThatHaveBeenSearched.insert(CopyString(entryName));
+		  staleFilesThatHaveBeenSearched.insert(strdup(entryName));
 	      }
 	      archive_read_data_skip(cacheArchive); 
 	      continue;
@@ -562,7 +577,7 @@ void ExecuteSearch(GrepParams* param)
 	  /* Handle files that are stale in the cache */
 	  if (SetContains(gStaleFiles, entryName))
 	  {
-	      staleFilesThatHaveBeenSearched.insert(CopyString(entryName));
+	      staleFilesThatHaveBeenSearched.insert(strdup(entryName));
 	      file = OpenFile(baseDirectory, entryName);
 	      if (!file)
 	      {
@@ -646,7 +661,7 @@ struct QArchive* CreateArchive(const char* archiveName, ArchiveCreateParams* par
     {
 	ret->ts = NULL;
     }
-    ret->archiveFileName = CopyString(archiveName);
+    ret->archiveFileName = strdup(archiveName);
     struct archive* a = archive_write_new();
     assert(a);
     archive_write_set_compression_gzip(a);
@@ -757,7 +772,7 @@ static void visualStudioHitFormat(void* context, const char* filename, unsigned 
     putchar('\n');
 }
 
-void ExecuteSimpleSearch(const char* archiveName, const char* options, const char* regex)
+void ExecuteSimpleSearch(const char* archiveName, const char* options, const char* regex, const char* secondPhaseRegex)
 {
     bool caseSensitive = true;
     bool searchFilenames = false;
@@ -799,6 +814,7 @@ void ExecuteSimpleSearch(const char* archiveName, const char* options, const cha
     params.ignoreTrigrams = ignoreTrigrams;
     params.printSummary = printSummary;
     params.callbackContext = (void*)searchFilenames;
+    params.secondPhasePattern = secondPhaseRegex;
     
     ExecuteSearch(&params);
 }

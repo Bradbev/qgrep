@@ -17,11 +17,12 @@ struct GrepParams
     unsigned int searchFilenames;
     unsigned int regexIsLiteral;
     unsigned int ignoreTrigrams;
-	unsigned int printSummary;
+    unsigned int printSummary;
+    const char* secondPhasePattern;
 };
 void ExecuteSearch(GrepParams* param);
     
-void ExecuteSimpleSearch(const char* archiveName, const char* options, const char* regex);
+void ExecuteSimpleSearch(const char* archiveName, const char* options, const char* regex, const char* secondPhaseRegex);
     
 // Creation functions    
 struct ArchiveCreateParams
