@@ -649,14 +649,28 @@ void FastPathSearch(int argc, const char** argv)
     const char* project = argv[2];
     const char* options = "";
     const char* regex = "";
+    const char* secondPhaseRegex = NULL;
     char projectFile[1024];
     switch (argc)
     {
-    case 5: // has options
+    case 6: // options regex secondPhaseRegex
 	options = argv[3];
 	regex = argv[4];
+	secondPhaseRegex = argv[5];
 	break;
-    case 4: // options omitted
+    case 5: // Options must now start with '-'
+	if (argv[3][0] == '-')
+	{
+	    options = argv[3];
+	    regex = argv[4];
+	}
+	else
+	{
+	    regex = argv[3];
+	    secondPhaseRegex = argv[4];
+	}
+	break;
+    case 4: // regex only
 	regex = argv[3];
 	break;
     default:
@@ -666,7 +680,7 @@ void FastPathSearch(int argc, const char** argv)
     GetProjectFileName(projectFile, project);
     if (FileExists(projectFile))
     {
-	ExecuteSimpleSearch(projectFile, options, regex);
+	ExecuteSimpleSearch(projectFile, options, regex, secondPhaseRegex);
     }
     else
     {

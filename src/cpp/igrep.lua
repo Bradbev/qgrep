@@ -1,4 +1,4 @@
-gVersion = "1.3.6"
+gVersion = "2.0.0"
 gVerbose = false
 
 ------------- Util
@@ -504,7 +504,8 @@ interpret the projects.lua file if possible.  By default matches
 will be returned in a format that is the same as grep, which is
 <filename>:<linenumber>:<line>
 	 
-Syntax is qgrep search <project> [options] <regex>
+Syntax is qgrep search <project> [-options] <regex> [secondPhaseRegex]
+The options list must be prefixed with '-' 
 Options are:
   i - causes the search to be case insensitive
   l - treat the regex as a literal string
@@ -515,7 +516,16 @@ Options are:
   \\\\ - replace forward slashes (/) with backslashes    
   / - replace backslashes (\\) with forward slashes
 
-Replacing slashes may be useful for editors that expect a certain slash type.]])
+Replacing slashes may be useful for editors that expect a certain slash type.
+<regex> - the regular expression to search for.  Syntax can be found at
+          http://code.google.com/p/re2/wiki/Syntax
+
+[secondPhaseRegex] - optional second filter stage.  The second stage regex
+takes the approximate output from the first stage (including filenames) and
+only prints if that output matches.  This phase is case insensitive.
+This is approximately the same as 
+  qgrep search <project> <regex> | grep -i <secondPhaseRegex>
+]])
   
 defHelp(build, "the T option disabled trigraph indexing during the build")
 

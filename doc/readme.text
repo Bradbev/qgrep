@@ -1,6 +1,7 @@
 # qgrep (Quick Grep)
 Super fast full text grep for programmers.  qgrep is now free and can 
 be found on [github](https://github.com/Bradbev/qgrep) under a BSD license.
+Discussion and announcements are [here](https://groups.google.com/forum/?fromgroups#!forum/qgrep)
 
 -----------------------
 qgrep is very similar to grep, but faster.  It is faster because it
