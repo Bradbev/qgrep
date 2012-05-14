@@ -507,9 +507,10 @@ will be returned in a format that is the same as grep, which is
 Syntax is qgrep search <project> [-options] <regex> [secondPhaseRegex]
 The options list must be prefixed with '-' 
 Options are:
+  f - search only filenames in the project 
   i - causes the search to be case insensitive
   l - treat the regex as a literal string
-  f - search only filenames in the project 
+  s - print summary
   T - do not use the trigram algorithm when searching
   V - output matches in a format suitable for Visual Studio to jump to.
       The format is <filename> (<linenumber>):<line>
@@ -532,7 +533,7 @@ defHelp(build, "the T option disabled trigraph indexing during the build")
 defCommand(help,         "help",          "Provides further help for commands")
 defCommand(build,        "build",         "<project> [T] regenerates the database for <project>")
 defCommand(listprojects, "projects",      "Lists all known projects")
-defCommand(search_help_only,   "search",  "<project> [liV/\\] <regex> searches for <regex> in the given project")
+defCommand(search_help_only,   "search",  "<project> [-filsTV/\\] <regex> [secondPhaseRegex] searches for <regex> in the given project.")
 defCommand(scanstalefiles, "scan-stale",  "<project> scans for stale files in the project.  Does not rebuild project")
 defCommand(files,        "files",         "<project> <regex> filters the filenames in <project> through <regex>")
 defCommand(startservice, "start-service", "Begins monitoring all projects ")

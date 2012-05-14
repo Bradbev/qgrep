@@ -458,7 +458,7 @@ void trigram_callback(void* vcontext, const char* filename)
     
     if (!SetContains(gDeletedFiles, filename))
     {
-	FILE *f = fopen(filename, "rb");
+	FILE *f = fopen(filename, "r");
 	if (f)
 	{
 	    context->handledFileSet->insert(strdup(filename));
@@ -750,7 +750,7 @@ static void grepFormatHit(void* context, const char* filename, unsigned int line
 	printf("%s:%d:", filename, lineNumber);
     }
     printLinePart(lineStart, lineEnd);
-    putchar('\n');
+	putchar('\n');
 }
 
 static void visualStudioHitFormat(void* context, const char* filename, unsigned int lineNumber, const char* lineStart, const char* lineEnd)
@@ -769,7 +769,7 @@ static void visualStudioHitFormat(void* context, const char* filename, unsigned 
 		printf("%s (%d):", s.c_str(), lineNumber);
     }
     printLinePart(lineStart, lineEnd);
-    putchar('\n');
+	putchar('\n');
 }
 
 void ExecuteSimpleSearch(const char* archiveName, const char* options, const char* regex, const char* secondPhaseRegex)
@@ -787,7 +787,7 @@ void ExecuteSimpleSearch(const char* archiveName, const char* options, const cha
 	{
 	case 'T': ignoreTrigrams = true; break;
 	case 'l': regexIsLiteral = true; break;
-	case 'i': caseSensitive = false; break;
+	case 'i': caseSensitive = false; ignoreTrigrams = true; break;
 	case 'f': searchFilenames = true; break;
 	case 'V': visualStudioHit = true; printSummary = true; break;
 	case 's': printSummary = true; break;
