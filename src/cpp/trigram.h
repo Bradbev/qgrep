@@ -15,7 +15,10 @@ TrigramSplitter* trigram_load_from_file(const char* filename);
 
 typedef void (*callback_fn)(void* context, const char* filename);
 // returns false if there were no matching files
-bool trigram_iterate_matching_files(TrigramSplitter* t, const char* string_to_find, void* context, callback_fn callback);
+
+// if the number of matching files is > max_matches, then immediately
+// return false without iterating.  if max_matches == 0, then do not early out
+bool trigram_iterate_matching_files(TrigramSplitter* t, const char* string_to_find, void* context, callback_fn callback, unsigned int max_matches = 0);
 
 bool trigram_string_is_searchable(const char* string);
 
