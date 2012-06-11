@@ -253,7 +253,7 @@ bool trigram_string_is_searchable(const char* string)
     return len > 2;
 }
 
-bool trigram_iterate_matching_files(TrigramSplitter* t, const char* string_to_find, void* context, callback_fn callback)
+bool trigram_iterate_matching_files(TrigramSplitter* t, const char* string_to_find, void* context, callback_fn callback, unsigned int max_matches)
 {
 #if 0
     TrigramAndOffset* trigrams = (TrigramAndOffset*)&t->lookup->data[t->lookup->trigram_offset];
@@ -278,7 +278,7 @@ bool trigram_iterate_matching_files(TrigramSplitter* t, const char* string_to_fi
 		set.current_lower_bound = set_data;
 		if (!set_data)
 		{
-		    return false;
+		    return true;
 		}
 		else
 		{
@@ -305,6 +305,8 @@ bool trigram_iterate_matching_files(TrigramSplitter* t, const char* string_to_fi
     TrigramIntSet smallest_set = triToSetMap[min_tri];
     if (triToSetMap.size() == 1)
     {
+	if (max_matches && smallest_set.count > max_matches) return false;
+	    
 	uint* set = smallest_set.current_lower_bound;
 	for (uint i = 0; i < smallest_set.count; i++)
 	{
@@ -325,6 +327,7 @@ bool trigram_iterate_matching_files(TrigramSplitter* t, const char* string_to_fi
 	}
     }
     uint resultSize = resultSet.size();
+    if (max_matches && resultSize > max_matches) return false;
     for (uint i = 0; i < resultSize; i++)
     {
 	//printf("\t%s\n", get_filename_from_index(t, resultSet[i]));

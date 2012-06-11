@@ -532,8 +532,14 @@ void ExecuteSearch(GrepParams* param)
       TrigramSplitter* ts = trigram_load_from_file(trifile);
       if (ts && trigram_string_is_searchable(param->searchPattern))
       {
-	  trigram_iterate_matching_files(ts, param->searchPattern, &tri_context, trigram_callback);
-	  goto skip_archive;
+	  if (trigram_iterate_matching_files(ts, param->searchPattern, &tri_context, trigram_callback, 0))
+	  {
+	      goto skip_archive;
+	  }
+	  else
+	  {
+	      //printf("exiting trigram search early!\n");
+	  }
       }
   }
   
