@@ -1,4 +1,4 @@
-gVersion = "2.0.0"
+gVersion = "2.0.1"
 gVerbose = false
 
 ------------- Util
@@ -141,16 +141,9 @@ end
 ------------- Project handling
 gProjects = {}
 
-function home()
-   local h = os.getenv("HOME")
-   if h then return h end
-   -- if win32, we might have to assemble the home path as below
-   return os.getenv("HOMEDRIVE") .. "/" .. os.getenv("HOMEPATH")
-end
-
 function PathExpand(path)
    if path:sub(1,1) == "~" then
-      return home() .. path:sub(2)
+      return c.qgreppath() .. path:sub(2)
    else
       return path
    end
