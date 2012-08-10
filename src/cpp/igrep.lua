@@ -1,4 +1,4 @@
-gVersion = "2.0.1"
+gVersion = "2.0.3"
 gVerbose = false
 
 ------------- Util
@@ -419,40 +419,49 @@ function listprojects()
    end
 end
 
-function files(projectName, regex)
-   local project = GetProjectOrDie(projectName)
-   if not c.fileexists(project.filenamesFile) then
-      print("Unable to find " .. project.filenamesFile .. ", please use the build command")
-      return
-   end
-   regex = regex or "."
-   local pattern = c.regex("(?i)"..regex)
-   local stale = {}
-   local deleted = {}
-   if c.fileexists(project.staleFile) then
-      for sf in io.lines(project.staleFile) do
-	 if sf:sub(1,1) == "-" then 
-	    deleted[sf:sub(2)] = true
-	 else
-	    stale[sf] = true
-	 end
-      end
-   end
-   local shown = {}
-   for l in io.lines(project.filenamesFile) do
-      if not deleted[l] and pattern:partialMatch(l) then
-	 print(l)
-	 shown[l] = true
-      end
-   end
-   for k,v in pairs(stale) do
-      if not shown[k] and pattern:partialMatch(k) then
-	 print(k)
-      end
+function split(s, sep)
+        local sep, fields = sep or ",", {}
+        local pattern = string.format("([^%s]+)", sep)
+        s:gsub(pattern, function(c) fields[#fields+1] = c end)
+        return fields
+end
+
+function files(projectNames, regex)
+   for _, projectName in pairs(split(projectNames)) do
+	  local project = GetProjectOrDie(projectName)
+	  if not c.fileexists(project.filenamesFile) then
+		 print("Unable to find " .. project.filenamesFile .. ", please use the build command")
+		 return
+	  end
+	  regex = regex or "."
+	  local pattern = c.regex("(?i)"..regex)
+	  local stale = {}
+	  local deleted = {}
+	  if c.fileexists(project.staleFile) then
+		 for sf in io.lines(project.staleFile) do
+			if sf:sub(1,1) == "-" then 
+			   deleted[sf:sub(2)] = true
+			else
+			   stale[sf] = true
+			end
+		 end
+	  end
+	  local shown = {}
+	  for l in io.lines(project.filenamesFile) do
+		 if not deleted[l] and pattern:partialMatch(l) then
+			print(l)
+			shown[l] = true
+		 end
+	  end
+	  for k,v in pairs(stale) do
+		 if not shown[k] and pattern:partialMatch(k) then
+			print(k)
+		 end
+	  end
    end
 end
 defHelp(files,
-"Searches filenames in the project instead of file contents."
+		"Searches filenames in the project instead of file contents."
 )
 
 function startservice()
@@ -567,4 +576,12 @@ end
 local lua_files_regex = { c.regex(".*\.lua$") }
 for i, plugin in pairs(filteredWalkDir(c.qgreppath() .. "/plugins", lua_files_regex, {})) do
    dofile(plugin)
+end
+
+-- Try to load plugins from the current working directory
+local plugins = c.getpluginpath()
+if plugins then
+   for i, plugin in pairs(filteredWalkDir(plugins, lua_files_regex, {})) do
+	  dofile(plugin)
+   end
 end
