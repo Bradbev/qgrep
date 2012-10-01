@@ -1,4 +1,4 @@
-gVersion = "2.0.3"
+gVersion = "2.0.4"
 gVerbose = false
 
 ------------- Util
@@ -225,17 +225,32 @@ function Project(tableArg)
    gProjects[name] = proj
 end
 
+local function norm_path(path)
+   local ret = string.gsub(path, "\\", "/")
+   ret = string.gsub(ret, "//", "/")
+   while ret:find("%.%.") do
+	  ret = ret:gsub("/%a-/%.%.", "")
+   end
+   while ret:find("/%.") do
+	  ret = ret:gsub("/%.", "/")
+   end
+   while ret:find("//") do
+	  ret = ret:gsub("//", "/")
+   end
+   return ret
+end
+
 function IterateProjectFiles(project)
    local seen = {}
    return coroutine.wrap(
 	function ()
  	   for k,v in pairs(project.tracked) do
  	      for k,v in pairs(filteredWalkDir(v.path, v.regexs, project.ignoreExprs)) do
-		 if not seen[v] then
-		    coroutine.yield(v)
-		 else
-		    seen[v] = true
-		 end
+			 v = norm_path(v)
+			 if not seen[v] then
+				seen[v] = true
+				coroutine.yield(v)
+			 end
 	      end
 	   end
 	end)
@@ -572,16 +587,17 @@ Project{"exampleproject"
    os.exit(0)
 end
 -------------------------------------------
--- Load plugins
-local lua_files_regex = { c.regex(".*\.lua$") }
-for i, plugin in pairs(filteredWalkDir(c.qgreppath() .. "/plugins", lua_files_regex, {})) do
-   dofile(plugin)
-end
-
--- Try to load plugins from the current working directory
+-- Try to load plugins from the plugin path
 local plugins = c.getpluginpath()
 if plugins then
    for i, plugin in pairs(filteredWalkDir(plugins, lua_files_regex, {})) do
 	  dofile(plugin)
    end
 end
+
+-- Load plugins
+local lua_files_regex = { c.regex(".*\.lua$") }
+for i, plugin in pairs(filteredWalkDir(c.qgreppath() .. "/plugins", lua_files_regex, {})) do
+   dofile(plugin)
+end
+
