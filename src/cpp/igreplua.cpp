@@ -11,6 +11,7 @@ extern "C" {
 #include <archive.h>
 #include <archive_entry.h>
 #include <stdio.h>
+#include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -138,6 +139,11 @@ char* GetQgrepColouring()
 	return buf;
     }
     return NULL;
+}
+    
+const char* GetPluginPath()
+{
+    return getenv("QGREP_PLUGINS");
 }
 
 bool FileExists(const char* path)
@@ -304,6 +310,20 @@ int C_qgreppath(lua_State* L)
     char buf[1024];
     GetQgrepPath(buf);
     lua_pushstring(L, buf);
+    return 1;
+};
+
+int C_getpluginpath(lua_State* L)
+{
+	const char* plugin_path = GetPluginPath();
+	if (plugin_path) 
+	{
+		lua_pushstring(L, plugin_path);
+	}
+	else
+	{
+		lua_pushnil(L);
+	}
     return 1;
 };
 
@@ -528,6 +548,7 @@ luaL_Reg luaFunctions[] =
     { "regex", C_re2_compile },
     { "mkdir", C_mkdir },
     { "qgreppath", C_qgreppath },
+    { "getpluginpath", C_getpluginpath },
     { "fileexists", C_fileexists },
     { "walkdir", C_walkdir },
     { "walkdir_next", C_walkdir_next },
@@ -801,7 +822,8 @@ void ExecuteSimpleColouredSearch(const char* archiveName, const char* options, c
 
 void FastPathSearch(int argc, const char** argv)
 {
-    const char* project = argv[2];
+    char projectNames[1024];
+    strcpy(projectNames, argv[2]);
     const char* options = "";
     const char* regex = "";
     const char* secondPhaseRegex = NULL;
@@ -832,16 +854,31 @@ void FastPathSearch(int argc, const char** argv)
 	printf("Insufficient arguments for command '%s'\n", argv[1]);
 	usage();
     }
-    GetProjectFileName(projectFile, project);
-    if (FileExists(projectFile))
+    
+    char* projects[20];
+    int projectCount = 0;
+    for (char* project = strtok(projectNames, ",");
+	 project && projectCount < 20;
+	 project = strtok(NULL, ","), projectCount++)
     {
-	ExecuteSimpleColouredSearch(projectFile, options, regex, secondPhaseRegex, GetQgrepColouring());
+	projects[projectCount] = project;
     }
-    else
+    
+    for (int i = 0; i < projectCount; i++)
     {
-	lua_ProjectExistsOrDie(project);
-	printf("Project is registered, but archive does not exist.\n");
-	printf("Run 'qgrep build %s' to generate archive\n", project);
+	const char* project = projects[i];
+    
+	GetProjectFileName(projectFile, project);
+	if (FileExists(projectFile))
+	{
+	    ExecuteSimpleColouredSearch(projectFile, options, regex, secondPhaseRegex, GetQgrepColouring());
+	}
+	else
+	{
+	    lua_ProjectExistsOrDie(project);
+	    printf("Project is registered, but archive does not exist.\n");
+	    printf("Run 'qgrep build %s' to generate archive\n", project);
+	}
     }
 }
 
