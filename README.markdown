@@ -34,7 +34,7 @@ qgrep expects to find a configuration file in a specific place.  For
 *nix systems the file is `~/.qgrep/projects.lua`
 
 For Windows the file is (in test order) `$(QGREP_HOME)/.qgrep/projects.lua` if it exists, or 
-$(HOME)/.qgrep/projects.lua` if it exists, or 
+`$(HOME)/.qgrep/projects.lua` if it exists, or 
 `$(HOMEDRIVE)$(HOMEPATH)/.qgrep/projects.lua` otherwise.
 
 If the projects.lua file cannot be found, qgrep will offer to create
@@ -86,6 +86,14 @@ file.
 
 - useTrigrams: true/false.  Enables or disables trigram usage.  Defaults 
 to true.  Search is much faster & building is about twice as slow.
+
+### Hit Colouring
+Qgrep tries to mimic grep's hit colouring when output is directed to a
+TTY.  The hit colour is set to the `QGREP_COLOUR` or `GREP_COLOR`
+environment variables.  See
+[ANSI escape codes](http://en.wikipedia.org/wiki/ANSI_escape_code) for the colour strings.
+For example, "1;31;1" will highlight hits in red.  When using Qgrep
+with the Emacs grep command highlighting should work automatically.
  
 ## How QGrep works
 Before version 1.3.3 qgrep only had one search algorithm, fast brute force.
@@ -119,10 +127,11 @@ qgrep will build.
 ## Plugins
 New to qgrep from version 1.1 is the concept of plugins.  For any
 command that is not 'search', qgrep will evaluate all .lua files in
-your ~/.qgrep/plugins directory.  **This can be viewed as a security
-flaw as these files will run with the same permissions as qgrep.**
-Plugins have full access to standard Lua, with full libraries, as well
-as the API functions detailed below.
+in the QGREP_PLUGINS environment variable and your ~/.qgrep/plugins
+directory.  **This can be viewed as a security flaw as these files
+will run with the same permissions as qgrep.** Plugins have full
+access to standard Lua, with full libraries, as well as the API
+functions detailed below.
 
 ### API
 
@@ -134,7 +143,9 @@ the arguments on the command line delimited by spaces.
 `short_help_string` - a short help string for this command
 
 **`GetProjectOrDie(projectName)`**  
-Use this function to convert a commandline project name to the internal 'project' table that many functions require.  Will quit with a message if project name is not found.
+Use this function to convert a commandline project name to the
+internal 'project' table that many functions require.  Will quit with
+a message if project name is not found.
 
 **`iterateArchive(archiveName)`**  
 Given the full path to an archive (zip) file, iterate over the files in that archive.
