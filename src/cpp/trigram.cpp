@@ -460,6 +460,11 @@ TrigramSplitter* trigram_load_from_file(const char* filename)
 #ifdef WIN32
 	// it is FASTER on win32 to NOT use mmap! (wtf)
     void* mem = malloc(st.st_size);
+	if (!mem)
+	{
+		printf("mem is null filename:%s size %d\n", filename, st.st_size);
+		return 0;
+	}
     read(fd, mem, st.st_size);
 #else
     void* mem = mmap(NULL, st.st_size, PROT_READ, MAP_SHARED, fd, 0);

@@ -1,4 +1,4 @@
-gVersion = "2.0.0"
+gVersion = "2.0.4"
 gVerbose = false
 
 ------------- Util
@@ -141,16 +141,9 @@ end
 ------------- Project handling
 gProjects = {}
 
-function home()
-   local h = os.getenv("HOME")
-   if h then return h end
-   -- if win32, we might have to assemble the home path as below
-   return os.getenv("HOMEDRIVE") .. "/" .. os.getenv("HOMEPATH")
-end
-
 function PathExpand(path)
    if path:sub(1,1) == "~" then
-      return home() .. path:sub(2)
+      return c.qgreppath() .. path:sub(2)
    else
       return path
    end
@@ -232,17 +225,32 @@ function Project(tableArg)
    gProjects[name] = proj
 end
 
+local function norm_path(path)
+   local ret = string.gsub(path, "\\", "/")
+   ret = string.gsub(ret, "//", "/")
+   while ret:find("%.%.") do
+	  ret = ret:gsub("/%a-/%.%.", "")
+   end
+   while ret:find("/%.") do
+	  ret = ret:gsub("/%.", "/")
+   end
+   while ret:find("//") do
+	  ret = ret:gsub("//", "/")
+   end
+   return ret
+end
+
 function IterateProjectFiles(project)
    local seen = {}
    return coroutine.wrap(
 	function ()
  	   for k,v in pairs(project.tracked) do
  	      for k,v in pairs(filteredWalkDir(v.path, v.regexs, project.ignoreExprs)) do
-		 if not seen[v] then
-		    coroutine.yield(v)
-		 else
-		    seen[v] = true
-		 end
+			 v = norm_path(v)
+			 if not seen[v] then
+				seen[v] = true
+				coroutine.yield(v)
+			 end
 	      end
 	   end
 	end)
@@ -426,40 +434,49 @@ function listprojects()
    end
 end
 
-function files(projectName, regex)
-   local project = GetProjectOrDie(projectName)
-   if not c.fileexists(project.filenamesFile) then
-      print("Unable to find " .. project.filenamesFile .. ", please use the build command")
-      return
-   end
-   regex = regex or "."
-   local pattern = c.regex("(?i)"..regex)
-   local stale = {}
-   local deleted = {}
-   if c.fileexists(project.staleFile) then
-      for sf in io.lines(project.staleFile) do
-	 if sf:sub(1,1) == "-" then 
-	    deleted[sf:sub(2)] = true
-	 else
-	    stale[sf] = true
-	 end
-      end
-   end
-   local shown = {}
-   for l in io.lines(project.filenamesFile) do
-      if not deleted[l] and pattern:partialMatch(l) then
-	 print(l)
-	 shown[l] = true
-      end
-   end
-   for k,v in pairs(stale) do
-      if not shown[k] and pattern:partialMatch(k) then
-	 print(k)
-      end
+function split(s, sep)
+        local sep, fields = sep or ",", {}
+        local pattern = string.format("([^%s]+)", sep)
+        s:gsub(pattern, function(c) fields[#fields+1] = c end)
+        return fields
+end
+
+function files(projectNames, regex)
+   for _, projectName in pairs(split(projectNames)) do
+	  local project = GetProjectOrDie(projectName)
+	  if not c.fileexists(project.filenamesFile) then
+		 print("Unable to find " .. project.filenamesFile .. ", please use the build command")
+		 return
+	  end
+	  regex = regex or "."
+	  local pattern = c.regex("(?i)"..regex)
+	  local stale = {}
+	  local deleted = {}
+	  if c.fileexists(project.staleFile) then
+		 for sf in io.lines(project.staleFile) do
+			if sf:sub(1,1) == "-" then 
+			   deleted[sf:sub(2)] = true
+			else
+			   stale[sf] = true
+			end
+		 end
+	  end
+	  local shown = {}
+	  for l in io.lines(project.filenamesFile) do
+		 if not deleted[l] and pattern:partialMatch(l) then
+			print(l)
+			shown[l] = true
+		 end
+	  end
+	  for k,v in pairs(stale) do
+		 if not shown[k] and pattern:partialMatch(k) then
+			print(k)
+		 end
+	  end
    end
 end
 defHelp(files,
-"Searches filenames in the project instead of file contents."
+		"Searches filenames in the project instead of file contents."
 )
 
 function startservice()
@@ -570,8 +587,17 @@ Project{"exampleproject"
    os.exit(0)
 end
 -------------------------------------------
+-- Try to load plugins from the plugin path
+local plugins = c.getpluginpath()
+if plugins then
+   for i, plugin in pairs(filteredWalkDir(plugins, lua_files_regex, {})) do
+	  dofile(plugin)
+   end
+end
+
 -- Load plugins
 local lua_files_regex = { c.regex(".*\.lua$") }
 for i, plugin in pairs(filteredWalkDir(c.qgreppath() .. "/plugins", lua_files_regex, {})) do
    dofile(plugin)
 end
+
