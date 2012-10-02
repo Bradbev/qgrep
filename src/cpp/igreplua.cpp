@@ -112,7 +112,7 @@ int lua_NewTable(lua_State* L)
 void GetQgrepPath(char* buffer)
 {
     char* home = getenv("QGREP_HOME");
-	if (!home) home = getenv("HOME");
+    if (!home) home = getenv("HOME");
 #ifdef WIN32
     if (home)
     {
@@ -125,6 +125,19 @@ void GetQgrepPath(char* buffer)
 #else
     sprintf(buffer, "%s/.qgrep", home);
 #endif
+}
+
+char* GetQgrepColouring()
+{
+    static char buf[1000];
+    const char* colour = getenv("QGREP_COLOUR");
+    if (!colour) colour = getenv("GREP_COLOR");
+    if (colour)
+    {
+	sprintf(buf, "[%sm", colour);
+	return buf;
+    }
+    return NULL;
 }
 
 bool FileExists(const char* path)
@@ -644,6 +657,148 @@ bool StrStartsWith(const char* str, const char* startsWith)
     return true;
 }
 
+/////////////////////////////////////////////////////////////////////////
+// Simple searching
+static char gReplaceSlashesTo = 0;
+static char gReplaceSlashesFrom = 0;
+static unsigned int gHitCount;
+
+re2::RE2* gColourPattern = NULL;
+re2::StringPiece gColourReplacement;
+
+void SetGlobalMatchColour(const char* searchpattern, re2::RE2::Options& options, const char* colour)
+{
+    if (colour && isatty(STDOUT_FILENO))
+    {
+	char* colourPattern = new char[strlen(searchpattern) + 100];
+	sprintf(colourPattern, "(.*?)(%s)(.*)", searchpattern);
+	gColourPattern = new RE2(colourPattern, options);
+	
+	char* colourReplacement = new char[1024];
+	// magic voodoo to get ANSI colours!
+	snprintf(colourReplacement, 1024, "\\1%s\\2[0m\\3", colour);
+	gColourReplacement = re2::StringPiece(colourReplacement, strlen(colourReplacement));
+    }
+}
+
+static void printLinePart(const char* lineStart, const char* lineEnd)
+{
+    if (gColourPattern)
+    {
+	std::string colouredLine;
+	re2::RE2::Extract(re2::StringPiece(lineStart, lineEnd - lineStart), *gColourPattern, gColourReplacement, &colouredLine);
+	fwrite(colouredLine.c_str(), 1, colouredLine.size(), stdout); 
+    }
+    else
+    {
+	fwrite(lineStart, 1, lineEnd - lineStart, stdout); 
+    }
+}
+
+static void ReplaceChars(std::string& s, char from, char to)
+{
+    for (size_t i = 0; i < s.size(); i++)
+    {
+	if (s[i] == from)
+	    s[i] = to;
+    }
+}
+
+static void grepFormatHit(void* context, const char* filename, unsigned int lineNumber, const char* lineStart, const char* lineEnd)
+{
+    gHitCount++;
+    if (gReplaceSlashesTo)
+    {
+	std::string s(filename);
+	ReplaceChars(s, gReplaceSlashesFrom, gReplaceSlashesTo);
+	printf("%s:%d:", s.c_str(), lineNumber);
+    }
+    else
+    {
+	printf("%s:%d:", filename, lineNumber);
+    }
+    printLinePart(lineStart, lineEnd);
+    putchar('\n');
+}
+
+static void visualStudioHitFormat(void* context, const char* filename, unsigned int lineNumber, const char* lineStart, const char* lineEnd)
+{
+    gHitCount++;
+    if (gReplaceSlashesTo)
+    {
+	std::string s(filename);
+	ReplaceChars(s, gReplaceSlashesFrom, gReplaceSlashesTo);
+	printf("%s (%d):", s.c_str(), lineNumber);
+    }
+    else
+    {
+	std::string s(filename);
+	ReplaceChars(s, '/', '\\');
+	printf("%s (%d):", s.c_str(), lineNumber);
+    }
+    printLinePart(lineStart, lineEnd);
+    putchar('\n');
+}
+
+void ExecuteSimpleColouredSearch(const char* archiveName, const char* options, const char* regex, const char* secondPhaseRegex, const char* colour)
+{
+    gHitCount = 0;
+    bool caseSensitive = true;
+    bool searchFilenames = false;
+    bool visualStudioHit = false;
+    bool regexIsLiteral = false;
+    bool ignoreTrigrams = false;
+    bool printSummary = false;
+    
+    while (*options)
+    {
+	switch (*options)
+	{
+	case 'T': ignoreTrigrams = true; break;
+	case 'l': regexIsLiteral = true; break;
+	case 'i': caseSensitive = false; ignoreTrigrams = true; break;
+	case 'f': searchFilenames = true; break;
+	case 'V': visualStudioHit = true; printSummary = true; break;
+	case 's': printSummary = true; break;
+	case '\\': gReplaceSlashesTo = '\\'; gReplaceSlashesFrom = '/'; break;
+	case '/': gReplaceSlashesTo = '/';   gReplaceSlashesFrom = '\\'; break;
+	default:
+	    break;
+	}
+	options++;
+    }
+     
+    GrepParams params;
+    memset(&params, 0, sizeof(params));
+    params.sourceArchiveName = archiveName;
+    params.callbackFunction = grepFormatHit;
+    if (visualStudioHit)
+    {
+	params.callbackFunction = visualStudioHitFormat;
+    }
+    params.searchPattern = regex;
+    params.streamBlockSize = 1 * 1024 * 1024;
+    params.streamBlockCount = 10;
+    params.caseSensitive = caseSensitive;
+    params.searchFilenames = searchFilenames;
+    params.regexIsLiteral = regexIsLiteral;
+    params.ignoreTrigrams = ignoreTrigrams;
+    params.callbackContext = (void*)searchFilenames;
+    params.secondPhasePattern = secondPhaseRegex;
+    
+    re2::RE2::Options colour_options;
+    colour_options.set_case_sensitive(params.caseSensitive);
+    colour_options.set_literal(params.regexIsLiteral);
+    SetGlobalMatchColour(regex, colour_options, colour);
+    
+    ExecuteSearch(&params);
+    
+    if (printSummary)
+    {
+	printf("Search complete, found %d matches\n", gHitCount);
+    }
+}
+
 void FastPathSearch(int argc, const char** argv)
 {
     const char* project = argv[2];
@@ -680,7 +835,7 @@ void FastPathSearch(int argc, const char** argv)
     GetProjectFileName(projectFile, project);
     if (FileExists(projectFile))
     {
-	ExecuteSimpleSearch(projectFile, options, regex, secondPhaseRegex);
+	ExecuteSimpleColouredSearch(projectFile, options, regex, secondPhaseRegex, GetQgrepColouring());
     }
     else
     {
@@ -692,10 +847,6 @@ void FastPathSearch(int argc, const char** argv)
 
 int main(int argc, const char** argv)
 {
-//    const char* test[] = { "", "search", "test", "footbridge" };
-//    FastPathSearch(4, test);
-//    return 0;
-
     if (argc > 1)
     {
 	if (strcmp("v", argv[1]) == 0)
@@ -709,7 +860,7 @@ int main(int argc, const char** argv)
 	if (search)
 	{
 	    FastPathSearch(argc, argv);
-	    return 0;
+	    goto exit_main;
 	}
     }
     
@@ -722,5 +873,6 @@ int main(int argc, const char** argv)
     }
     ReportedDoCall(gLuaState, argc,0);
     
+exit_main:
     return 0;
 }

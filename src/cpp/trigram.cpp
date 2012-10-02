@@ -229,7 +229,7 @@ bool is_in_all_sets(std::map<Trigram, TrigramIntSet>& triToSetMap, uint test_ind
 	uint* l = std::lower_bound(set.current_lower_bound, set.upper_bound, test_index);
 	if (*l <= test_index)
 	{
-	    // move up this sets lower bound
+	    // move up this set's lower bound
 	    set.current_lower_bound = l;
 	}
 	if (*l != test_index)

@@ -1,3 +1,11 @@
+Qgrep cleanup
+- detect colours to tty or file
+- get a test framework setup
+- purify archive.cpp (ie, move ExecuteSimpleSearch to igreplua)
+- trigram splitting  
+- delete the old crap files
+
+
 * TASKS
 :PROPERTIES:
 :ID: Tasks  
