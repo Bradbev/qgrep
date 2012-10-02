@@ -8,22 +8,28 @@ LIBS = $(LIBDIR)/libarchive.a $(LIBDIR)/liblua.a $(LIBDIR)/libre2.a -lbz2 -lz
 IGREP_SRCS = archive.cpp stream.cpp trigram.cpp
 IGREP_OBJS = $(IGREP_SRCS:.cpp=.o) yarn.o
 
-CFLAGS = -O3 -g -Wall -Werror -fPIC $(INCLUDES) $(DIST_OPTS) -mmacosx-version-min=10.5
+CFLAGS += -O3 -g -Wall -Werror -fPIC $(INCLUDES) $(DIST_OPTS) -mmacosx-version-min=10.5
 CPPFLAGS = $(CFLAGS)
 
-all: libigrep.dylib igrepll igreplua
+all: libigrep.dylib igrepll igreplua libqgrep.a
 
 igreplua: $(IGREP_OBJS) *.h igreplua.o
 	g++ -o igreplua igreplua.o $(IGREP_OBJS) $(CFLAGS) $(LIBS)
 
 libigrep.dylib: $(IGREP_OBJS) *.h
 	g++ -dynamiclib -o libigrep.dylib $(IGREP_OBJS) $(LIBS)
+	
+libqgrep.a: $(IGREP_OBJS)
+	ar rcs libqgrep.a $(IGREP_OBJS)
 
 igrepll: libigrep.dylib igrep.o *.h
 	g++ -o igrepll igrep.o libigrep.dylib $(CFLAGS)
 
 clean:
-	rm -f *.o *.dylib igrepll igreplua igreplua.bin.h
+	rm -f *.o *.dylib *.a igrepll igreplua igreplua.bin.h
+	find . -iname "*.gcov" | xargs rm -f
+	find . -iname "*.gcda" | xargs rm -f
+	find . -iname "*.gcno" | xargs rm -f
 
 .PHONY: clean
 

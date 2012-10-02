@@ -14,6 +14,7 @@
 #include <set>
 #include <string>
 #include "trigram.h"
+#include <unistd.h>
 
 struct ltstr
 {
@@ -486,10 +487,8 @@ void trigram_callback(void* vcontext, const char* filename)
  *   therefore not indexed.
  * - Wait for the RE2 threads to complete
  */
-static unsigned int gHitCount;
 void ExecuteSearch(GrepParams* param)
 {
-  gHitCount = 0;
   struct archive_entry *entry;
   int r;
   StringSet staleFilesThatHaveBeenSearched;
@@ -513,7 +512,6 @@ void ExecuteSearch(GrepParams* param)
   }
   
   thread* consumer = launch(grepThreadFn, context);
-  
   
   struct QArchive cacheQArchive;
   cacheQArchive.a = NULL;
@@ -645,11 +643,6 @@ skip_archive:
   //printf("Waiting on join\n");
   join(consumer);
   
-  if (param->printSummary)
-  {
-	  printf("Search complete, found %d matches\n", gHitCount);
-  }
-  
   delete context->pattern;
   delete context;
   DestroyStream(dataStream);
@@ -723,104 +716,3 @@ void CloseArchive(struct QArchive* qa)
 }
 
 
-/////////////////////////////////////////////////////////////////////////
-// Simple searching
-static char gReplaceSlashesTo = 0;
-static char gReplaceSlashesFrom = 0;
-
-static void printLinePart(const char* lineStart, const char* lineEnd)
-{
-    fwrite(lineStart, 1, lineEnd - lineStart, stdout); 
-}
-
-static void ReplaceChars(std::string& s, char from, char to)
-{
-    for (size_t i = 0; i < s.size(); i++)
-    {
-	if (s[i] == from)
-	    s[i] = to;
-    }
-}
-
-static void grepFormatHit(void* context, const char* filename, unsigned int lineNumber, const char* lineStart, const char* lineEnd)
-{
-	gHitCount++;
-    if (gReplaceSlashesTo)
-    {
-	std::string s(filename);
-	ReplaceChars(s, gReplaceSlashesFrom, gReplaceSlashesTo);
-	printf("%s:%d:", s.c_str(), lineNumber);
-    }
-    else
-    {
-	printf("%s:%d:", filename, lineNumber);
-    }
-    printLinePart(lineStart, lineEnd);
-	putchar('\n');
-}
-
-static void visualStudioHitFormat(void* context, const char* filename, unsigned int lineNumber, const char* lineStart, const char* lineEnd)
-{
-	gHitCount++;
-    if (gReplaceSlashesTo)
-    {
-		std::string s(filename);
-		ReplaceChars(s, gReplaceSlashesFrom, gReplaceSlashesTo);
-		printf("%s (%d):", s.c_str(), lineNumber);
-    }
-    else
-    {
-		std::string s(filename);
-		ReplaceChars(s, '/', '\\');
-		printf("%s (%d):", s.c_str(), lineNumber);
-    }
-    printLinePart(lineStart, lineEnd);
-	putchar('\n');
-}
-
-void ExecuteSimpleSearch(const char* archiveName, const char* options, const char* regex, const char* secondPhaseRegex)
-{
-    bool caseSensitive = true;
-    bool searchFilenames = false;
-    bool visualStudioHit = false;
-    bool regexIsLiteral = false;
-    bool ignoreTrigrams = false;
-    bool printSummary = false;
-    
-    while (*options)
-    {
-	switch (*options)
-	{
-	case 'T': ignoreTrigrams = true; break;
-	case 'l': regexIsLiteral = true; break;
-	case 'i': caseSensitive = false; ignoreTrigrams = true; break;
-	case 'f': searchFilenames = true; break;
-	case 'V': visualStudioHit = true; printSummary = true; break;
-	case 's': printSummary = true; break;
-	case '\\': gReplaceSlashesTo = '\\'; gReplaceSlashesFrom = '/'; break;
-	case '/': gReplaceSlashesTo = '/';   gReplaceSlashesFrom = '\\'; break;
-	default:
-	    break;
-	}
-	options++;
-    }
-     
-    GrepParams params;
-    memset(&params, 0, sizeof(params));
-    params.sourceArchiveName = archiveName;
-    params.callbackFunction = grepFormatHit;
-    if (visualStudioHit)
-		params.callbackFunction = visualStudioHitFormat;
-    params.searchPattern = regex;
-    params.streamBlockSize = 1 * 1024 * 1024;
-    params.streamBlockCount = 10;
-    params.caseSensitive = caseSensitive;
-    params.searchFilenames = searchFilenames;
-    params.regexIsLiteral = regexIsLiteral;
-    params.ignoreTrigrams = ignoreTrigrams;
-    params.printSummary = printSummary;
-    params.callbackContext = (void*)searchFilenames;
-    params.secondPhasePattern = secondPhaseRegex;
-    
-    ExecuteSearch(&params);
-}
