@@ -689,7 +689,19 @@ re2::StringPiece gColourReplacement;
 
 void SetGlobalMatchColour(const char* searchpattern, re2::RE2::Options& options, const char* colour)
 {
-    if (colour && isatty(STDOUT_FILENO))
+	bool shouldDoColour = isatty(STDOUT_FILENO);
+	
+	// Test to see if GREP_OPTIONS is forcing colour
+	if (colour && !shouldDoColour)
+	{
+		const char* grep_options = getenv("GREP_OPTIONS");
+		if (grep_options && strstr(grep_options, "--color=always"))
+		{
+			shouldDoColour = true;
+		}
+	}
+
+    if (colour && shouldDoColour)
     {
 	char* colourPattern = new char[strlen(searchpattern) + 100];
 	sprintf(colourPattern, "(.*?)(%s)(.*)", searchpattern);
