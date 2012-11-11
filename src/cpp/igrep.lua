@@ -272,6 +272,8 @@ function CreateProjectStaleFiles(project)
       project.filesInArchive = iterateToTable(iterateArchive(project.archiveFile))
       project.filesInArchiveScannedAt = archiveTime
    end
+   if project.filesInArchive == nil then return end
+   
    local time = archiveTime
    
    local tmpname = os.tmpname()
