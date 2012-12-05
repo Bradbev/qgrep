@@ -49,6 +49,13 @@ function iterateArchive(archiveName)
 	  end
 end
 
+function iterateArchiveWithData(archiveName)
+   local archiveWalker = archive.OpenArchive(archiveName)
+   return function()
+	     return archive.ArchiveNextWithData(archiveWalker)
+	  end
+end
+
 function iterateToTable(i)
    local ret = {}
    while true do
@@ -272,6 +279,8 @@ function CreateProjectStaleFiles(project)
       project.filesInArchive = iterateToTable(iterateArchive(project.archiveFile))
       project.filesInArchiveScannedAt = archiveTime
    end
+   if project.filesInArchive == nil then return end
+   
    local time = archiveTime
    
    local tmpname = os.tmpname()

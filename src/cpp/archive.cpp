@@ -337,6 +337,7 @@ int ReadDataFromFileOrArchive(struct QArchive* qa, FILE* f, void* dest, int byte
     return 0;
 }
 /*
+#implementationdetail
 Correctness is king:
  - but pathologically large lines or files are unreasonable, ie forget
  about memory constraints in this case
@@ -470,7 +471,8 @@ void trigram_callback(void* vcontext, const char* filename)
 }
 
 /*
- * ExecuteSearch has gotten very hairy, and should be refactored.
+ * @bbeveridge
+ * ExecuteSearch has gotten very hairy, and should be #refactored.
  * The intended logic goes as such
  * - If it is valid to search using trigram indexing, then:
  *   1) Search using trigrams.  To avoid rehitting stalefiles, add
