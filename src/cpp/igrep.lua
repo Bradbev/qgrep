@@ -1,4 +1,4 @@
-gVersion = "2.0.6"
+gVersion = "2.0.7"
 gVerbose = false
 
 ------------- Util
@@ -588,6 +588,8 @@ Project{"exampleproject"
 end
 -------------------------------------------
 -- Try to load plugins from the plugin path
+local lua_files_regex = { c.regex(".*\.lua$") }
+
 local plugins = c.getpluginpath()
 if plugins then
    for i, plugin in pairs(filteredWalkDir(plugins, lua_files_regex, {})) do
@@ -596,7 +598,6 @@ if plugins then
 end
 
 -- Load plugins
-local lua_files_regex = { c.regex(".*\.lua$") }
 for i, plugin in pairs(filteredWalkDir(c.qgreppath() .. "/plugins", lua_files_regex, {})) do
    dofile(plugin)
 end
