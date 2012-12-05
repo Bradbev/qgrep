@@ -1,8 +1,8 @@
--- Using #hashtags and @names inside source code 
+-- Using #hashtags and #@names inside source code 
 -- How to do it:
 -- qgrep for #\w+ & record every file that has a hash tag 
 --   ignore pragma, if, end, elif, include, define, ifdef
--- do the same for @\w+ for names
+-- do the same for #@\w+ for names
 -- record which files have tags for the second pass
 -- Gather all comment blocks from the file, search them for
 -- tags & put those block ids into the map.
@@ -65,9 +65,11 @@ end
 function extract_tags_from_string(text)
    local exclude = {
       ["#define"] = true, 
+      ["#defines"] = true, 
       ["#elif"] = true, 
       ["#else"] = true,
       ["#endif"] = true, 
+      ["#error"] = true, 
       ["#if"] = true,
       ["#ifdef"] = true, 
       ["#ifndef"] = true, 
@@ -78,9 +80,10 @@ function extract_tags_from_string(text)
       ["#using"] = true, 
    }
    local ret = {}
-   for t in text:lower():gmatch("[#@][^%s]+") do
-      if not exclude[t] then
-	 ret[t] = true
+   for t in text:lower():gmatch("[#]@?%a%a[%a]+") do
+	  local tag = t:gsub("#@", "@")
+      if not exclude[tag] then
+		 ret[tag] = true
       end
    end
    return ret
@@ -133,11 +136,15 @@ end
 
 function output_html(project_name, outfile, db)
    local f = io.open(outfile, "w")
+   if not f then
+	  print("Unable to open ", outfile)
+	  os.exit(0)
+   end
    local function emit(...)
       f:write(string.format(...))
    end
    local function escape_string(k)
-      return k:gsub("'", "\\'"):gsub("\n", "\\n")
+      return k:gsub("['\"\\\r\n]", "\\%1")
    end
    
    for line in io.lines(c.qgreppath() .. "/plugins/hashtagfiles/tags_template.html") do
@@ -204,19 +211,22 @@ function output_html(project_name, outfile, db)
    f:close()
 end
 
-function MakeHashTagHTML(projectName, outputfile)
+function MakeHashTagHTML(projectName, outputfile, secondPhaseRegex)
    local project = GetProjectOrDie(projectName)
    local target_files = {}
    local target_file_count = 0
+   local secondRegex = secondPhaseRegex and c.regex(secondPhaseRegex)
    local callback = function(filename, linenumber, line)
-		       if target_files[filename] == nil and next(extract_tags_from_string(line)) then
-			  target_files[filename] = true
-			  target_file_count = target_file_count + 1
-		       end
+					   if target_files[filename] == nil and next(extract_tags_from_string(line)) then
+						  if secondRegex == nil or secondRegex:partialMatch(filename) then
+							 target_files[filename] = true
+							 target_file_count = target_file_count + 1
+						  end
+					   end
 		    end
    local p = { 
       project = projectName, 
-      regex = ".*[#@]\\S\\S\\S+.*",
+      regex = ".*\\s[#]\\S\\S\\S+.*",
       callback = callback 
    }
    c.execute_search(p)
