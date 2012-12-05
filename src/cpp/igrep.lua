@@ -1,4 +1,4 @@
-gVersion = "2.0.6"
+gVersion = "2.0.7"
 gVerbose = false
 
 ------------- Util
@@ -46,6 +46,13 @@ function iterateArchive(archiveName)
    local archiveWalker = archive.OpenArchive(archiveName)
    return function()
 	     return archive.ArchiveNext(archiveWalker)
+	  end
+end
+
+function iterateArchiveWithData(archiveName)
+   local archiveWalker = archive.OpenArchive(archiveName)
+   return function()
+	     return archive.ArchiveNextWithData(archiveWalker)
 	  end
 end
 
