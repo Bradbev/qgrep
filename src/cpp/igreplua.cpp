@@ -782,11 +782,13 @@ void ExecuteSimpleColouredSearch(const char* archiveName, const char* options, c
     bool regexIsLiteral = false;
     bool ignoreTrigrams = false;
     bool printSummary = false;
+	bool doNotUseColour = false;
     
     while (*options)
     {
 	switch (*options)
 	{
+	case 'C': doNotUseColour = true; break;
 	case 'T': ignoreTrigrams = true; break;
 	case 'l': regexIsLiteral = true; break;
 	case 'i': caseSensitive = false; ignoreTrigrams = true; break;
@@ -819,10 +821,13 @@ void ExecuteSimpleColouredSearch(const char* archiveName, const char* options, c
     params.callbackContext = (void*)searchFilenames;
     params.secondPhasePattern = secondPhaseRegex;
     
-    re2::RE2::Options colour_options;
-    colour_options.set_case_sensitive(params.caseSensitive);
-    colour_options.set_literal(params.regexIsLiteral);
-    SetGlobalMatchColour(regex, colour_options, colour);
+	if (doNotUseColour == false)
+	{
+		re2::RE2::Options colour_options;
+		colour_options.set_case_sensitive(params.caseSensitive);
+		colour_options.set_literal(params.regexIsLiteral);
+		SetGlobalMatchColour(regex, colour_options, colour);
+	}
     
     ExecuteSearch(&params);
     
