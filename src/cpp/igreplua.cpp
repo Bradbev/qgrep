@@ -245,7 +245,9 @@ private:
 class ArchiveWalker
 {
 public:
-    ArchiveWalker(const char* archiveName)
+    ArchiveWalker(const char* archiveName) 
+    : mSize(0)
+    , mData(NULL)
     {
 	mArchive = archive_read_new();
 	archive_read_support_compression_all(mArchive);
@@ -268,9 +270,30 @@ public:
 	}
 	return std::string("");
     }
+    
+    std::string next_with_data(char** data_out, size_t* data_size)
+    {
+	if (archive_read_next_header(mArchive, &mEntry) == ARCHIVE_OK)
+	{
+	    std::string entryName = archive_entry_pathname(mEntry);
+	    size_t size = archive_entry_size(mEntry);
+	    if (size > mSize)
+	    {
+		mSize = size;
+		mData = (char*)realloc(mData, mSize);
+	    }
+	    archive_read_data(mArchive, mData, size); 
+	    *data_out = mData;
+	    *data_size = size;
+	    return entryName;
+	}
+	return std::string("");
+    }
 private:
     struct archive* mArchive;
     struct archive_entry* mEntry;
+    size_t mSize;
+    char* mData;
 };
 
 //#include <fcntl.h> /* For STDIN_FILENO */
@@ -613,6 +636,24 @@ int C_archive_ArchiveNext(lua_State* L)
     return 1;
 }
 
+// (archiveWalker:lightuserdata) -> string | nil
+int C_archive_ArchiveNextWithData(lua_State* L)
+{
+    ArchiveWalker* aw = (ArchiveWalker*)lua_topointer(L, 1);
+    char* data;
+    size_t data_size;
+    std::string next = aw->next_with_data(&data, &data_size);
+    if (next == "")
+    {
+	delete aw;
+	lua_pushnil(L);
+	return 1;
+    }
+    lua_pushstring(L, next.c_str());
+    lua_pushlstring(L, data, data_size);
+    return 2;
+}
+
 luaL_Reg archiveFunctions[] =
 {
     { "CreateArchive", C_archive_CreateArchive },
@@ -620,6 +661,7 @@ luaL_Reg archiveFunctions[] =
     { "CloseArchive", C_archive_CloseArchive },
     { "OpenArchive", C_archive_OpenArchive },
     { "ArchiveNext", C_archive_ArchiveNext },
+    { "ArchiveNextWithData", C_archive_ArchiveNextWithData },
     { NULL, NULL}, 
 };
 
