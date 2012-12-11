@@ -80,7 +80,7 @@ function extract_tags_from_string(text)
       ["#using"] = true, 
    }
    local ret = {}
-   for t in text:lower():gmatch("[#]@?%a%a[%a]+") do
+   for t in text:lower():gmatch("[#@]%a%a[%a]+") do
 	  local tag = t:gsub("#@", "@")
       if not exclude[tag] then
 		 ret[tag] = true
@@ -103,7 +103,7 @@ function extract_trigrams_from_string(s)
    local ret = {}
    for i=1,#s-2 do
       local str = s:sub(i, i+2):lower()
-      if str and not str:find('\n') then
+      if str and not str:find('[%s\n]') then
 	 ret[str] = true
       end
    end
@@ -143,8 +143,11 @@ function output_html(project_name, outfile, db)
    local function emit(...)
       f:write(string.format(...))
    end
-   local function escape_string(k)
-      return k:gsub("['\"\\\r\n]", "\\%1")
+   local function escape_string(s)
+      return s:gsub("['\"\\\r\n]", "\\%1")
+   end
+   local function escape_html(s)
+      return s:gsub("<", "&lt"):gsub(">", "&gt")
    end
    
    for line in io.lines(c.qgreppath() .. "/plugins/hashtagfiles/tags_template.html") do
@@ -168,7 +171,7 @@ function output_html(project_name, outfile, db)
 	 end 
 	 emit("};\n")
 	 
-	 emit("var comments = ['0 offset dummy comment', ")
+	 emit("var comments = ['0 offset dummy comment',\n")
 	 for i, comments in pairs(db.comments) do
 	    emit('"%s",\n', escape_string(comments.comment))
 	 end
@@ -185,7 +188,7 @@ function output_html(project_name, outfile, db)
 	 -- populate inline comments
 	 for i, comment in pairs(db.comments) do
 	    local filename = comment.filename
-	    emit('<div class="comment" id="%d"><pre><a class="comment_aref" href="%s">%s</a>\n%s</pre></div>', i, filename, filename, comment.comment)
+	    emit('<div class="comment" id="%d"><pre><a class="comment_aref" href="%s">%s</a>\n%s</pre></div>\n', i, filename, filename, escape_html(comment.comment))
 	 end
       end
       
@@ -203,7 +206,7 @@ function output_html(project_name, outfile, db)
 	       have_emitted_at_header = true
 	       emit('<h2>Known names</h2>\n')
 	    end
-	    emit('<a class="tag_aref" href="%s">%s</a><br>', tag, tag)
+	    emit('<a class="tag_aref" href="%s">%s</a><br>\n', tag, tag)
 	 end
       end
    end
@@ -226,7 +229,7 @@ function MakeHashTagHTML(projectName, outputfile, secondPhaseRegex)
 		    end
    local p = { 
       project = projectName, 
-      regex = ".*\\s[#]\\S\\S\\S+.*",
+      regex = ".*\\s[#@]\\S\\S\\S+.*",
       callback = callback 
    }
    c.execute_search(p)

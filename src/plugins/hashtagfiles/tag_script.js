@@ -82,15 +82,34 @@ function filter_comments(to_find) {
 }
 
 $(document).ready(function(){
-    $("#main_header").html("#Tags for " + project_name);
+    var is_showing_file = false;
+    
+    if (window.project_name){
+	$("#main_header").html("#tags for " + project_name);
+    }
     
     $("#searchbox").keyup(function(){
 	var text = $(this).val();
 	filter_comments(text);
     });
     
-    $(".comment_aref").click(function(event){
-	//event.preventDefault();
+    $(".comment_href").click(function(event) {
+	// It's sad, but basically what I want to do is very difficult with Chrome.  
+        // I want to run the website from c:/foo/tags.html & access c:/bar/data.cpp
+        // but there is no real way to do this due to (obvious) security issues.
+        // Unless I run a browser.
+
+	// event.preventDefault();
+	
+	// var file = $(this).attr('href');
+	// $.get(file, function(data) {
+	//     $("#fileview_pre").text(data);
+	//     sh_highlightDocument();
+	//     $("#div_fileview").show("fast");
+	//     $("#span_filename").html(file);
+	//     is_showing_file = true;
+	// });
+	
     });
     
     $(".tag_aref").click(function(event){
@@ -100,4 +119,40 @@ $(document).ready(function(){
 	filter_comments(search.val());
 	event.preventDefault();
     });
+    
+    $(".tag_aref").dblclick(function(event){
+	var search = $("#searchbox")
+	search.val($(this).html())
+	filter_comments(search.val());
+	event.preventDefault();
+    });
+    
+    $("#help_link").click(function() {
+	$("#div_help").show(200);
+	event.preventDefault();
+    });
+    
+    $("#help_close_link").click(function() {
+	$("#div_help").hide(200);
+	event.preventDefault();
+    });
+    
+    $(document).keyup(function(event){
+	if (event.which == 27) {
+	    if (is_showing_file) {
+		$("#div_fileview").hide("fast");
+	    }
+	    else
+	    {
+		// remove the last word
+		var search = $("#searchbox")
+		var words = $.trim(search.val());
+		words = words.split(" ");
+		words.pop();
+		search.val($.trim(words.join(" ")))
+		filter_comments(search.val());
+	    }
+	}
+    });
+    
 });

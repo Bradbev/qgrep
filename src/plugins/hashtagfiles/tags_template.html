@@ -1,32 +1,88 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html><head>
+<html><head><meta content="text/html; charset=ISO-8859-1" http-equiv="content-type"><title>tags</title>
   
-  <meta content="text/html; charset=ISO-8859-1" http-equiv="content-type">
-  <title>tags</title>
-
-  
-  
-  <style type="text/css">
+<style type="text/css">
 #tag_column {
   float: left;
-  width: 25%;
+  width: 250px;
 }
 #comment_block {
-  width: 75%;
-  float: right;
+  float: left;
+}
+#div_help {
+  position : absolute;
+  right : 5px;
+  top : 10px;
+  width : 500px;
+  height : 180px;
+  border-radius: 15px;
+  background-color : rgb(218, 168, 168);
+  display : none;
+  -moz-box-shadow: -4px 4px 10px 5px #999;
+  -webkit-box-shadow:  -4px 4px 10px 5px #999;
+  box-shadow: -4px 4px 10px 5px #999;
+}
+#div_fileview {
+  position : absolute;
+  top : 5%;
+  left: 15%;
+  width : 70%;
+  height : 90%;
+  border-radius: 15px;
+  background-color : white;
+  display : none;
+  -moz-box-shadow: 0px 0px 40px 5px #999;
+  -webkit-box-shadow: 0px 0px 40px 5px #999;
+  box-shadow: 0px 0px 40px 5px #999;
 }
 
-  </style>
-</head><body>
-<span style="font-weight: bold;"></span>
-<h1 style="text-align: center;" id="main_header">#Tags for
-&lt;project&gt;</h1>
+#div_filescrollarea {
+  position : absolute;
+  overflow-y: scroll;
+  width : 100%;
+  height : 90%;
+}
+</style>
+
+<!-- only include these scripts in the template for testing -->
+<script src="jquery-1.8.3.min.js"></script>
+<script src="tag_script.js"></script>
+<script type="text/javascript" src="sh_main.min.js"></script>
+<script type="text/javascript" src="sh_cpp.min.js"></script>
+<link type="text/css" rel="stylesheet" href="sh_style.css">
+</head>
+<body>
+
+<div style="text-align: right;"><a id="help_link">Help</a></div>
+<h1 style="text-align: center;" id="main_header">#Tags for &lt;project&gt;</h1>
+  
+<h2>Known Tags</h2>
+<div id="tag_column">
+</div>
 
 <div id="comment_block" align="left"><br>
 <textarea cols="80" id="searchbox" rows="1" name="searchbox"></textarea><br>
 </div>
 
-<div id="tag_column"><h2>Known Tags</h2>
-</div>
+<div id="div_help">
+<div style="text-align: right;"><a id="help_close_link">Close</a></div>
 
+<div style="margin-left : 10px">
+  Click a tag or name link to add to the search box.  <br>
+  Double clicking a tag or name link will clear the current search and add only that
+  tag.  <br>
+  Hitting escape will remove the rightmost word from the search box, essentially going "back" one level.
+</div> </div>
+
+<div id="div_fileview">
+  <div style="margin : 5px; text-align: center;" id="span_filename">HI</div>
+  <hR>
+  <div id="div_filescrollarea">
+    <pre id="fileview_pre" style="margin-left: 10px" class="sh_cpp"></pre>
+  </div>  
+</div>  
+<a class="comment_href" href="http://localhost:8000/hashtagfiles/test_data.cpp">File link test</a>
+<a class="comment_href" href="test_data.cpp">(local)File link test</a>
+<input type="file" id="fileSelector" multiple accept="image/*">
 </body></html>
+
