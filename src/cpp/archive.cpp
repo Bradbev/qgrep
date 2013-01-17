@@ -363,6 +363,7 @@ void LargeFileFallback(struct QArchive* qa, FILE* f, NamedDataBlock* alreadyRead
     {
 	gFallbackExpands++;
 	readSize = ReadDataFromFileOrArchive(qa, f, readBlock, expandSize);
+	if (readSize < 0) break;
 	block = AppendDataToBlock(block, readBlock, readSize);
     } while (readSize == expandSize);
     
