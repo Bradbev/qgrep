@@ -507,11 +507,22 @@ void ExecuteSearch(GrepParams* param)
   options.set_case_sensitive(param->caseSensitive);
   options.set_literal(param->regexIsLiteral);
   context->pattern = new RE2(param->searchPattern, options);
+  if (context->pattern->ok() == false)
+  {
+      printf("FATAL: Primary regex expression has an error : %s\n", context->pattern->error().c_str());
+      exit(1);
+  }
   if (param->secondPhasePattern)
   {
       RE2::Options nocase;
       nocase.set_case_sensitive(false);
       context->secondPhasePattern = new RE2(param->secondPhasePattern, nocase);
+      
+      if (context->secondPhasePattern->ok() == false)
+      {
+          printf("FATAL: Secondary regex expression has an error : %s\n", context->secondPhasePattern->error().c_str());
+          exit(1);
+      }
   }
   
   thread* consumer = launch(grepThreadFn, context);
