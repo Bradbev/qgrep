@@ -449,7 +449,11 @@ void trigram_save_to_file(TrigramSplitter* t, const char* filename)
 TrigramSplitter* trigram_load_from_file(const char* filename)
 {
     TrigramSplitter* t = trigram_new();
-    int fd = open(filename, O_RDONLY);
+	int oflag = O_RDONLY;
+#ifdef WIN32
+	oflag |= O_BINARY;
+#endif
+    int fd = open(filename, oflag);
     if (fd == -1)
     {
 		//printf("Unable to open %s\n", filename);
