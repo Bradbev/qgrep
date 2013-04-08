@@ -325,6 +325,7 @@ int C_waitForKeypress(lua_State* L)
     return 0;
 #endif
 }
+const char* C_waitForKeypress_help = "deprecated";
 
 // Gets the qgrep path base
 // (nil) -> string
@@ -335,6 +336,7 @@ int C_qgreppath(lua_State* L)
     lua_pushstring(L, buf);
     return 1;
 };
+const char* C_qgreppath_help = "returns the directory that Qgrep loads archive files from";
 
 int C_getpluginpath(lua_State* L)
 {
@@ -349,6 +351,7 @@ int C_getpluginpath(lua_State* L)
 	}
     return 1;
 };
+const char* C_getpluginpath_help = "returns the directory that Qgrep loads plugins from";
 
 // Does a file exist?
 // (filename:string) -> boolean
@@ -357,6 +360,7 @@ int C_fileexists(lua_State* L)
     lua_pushboolean(L, FileExists(luaL_checkstring(L, -1)));
     return 1;
 }
+const char* C_fileexists_help = "(filename:string) - returns true if file at that path exists";
 
 // Returns a directory walker object
 // (basepath:string, optional recurse:boolean) -> lightuserdata
@@ -372,6 +376,7 @@ int C_walkdir(lua_State* L)
     lua_pushlightuserdata(L, dw);
     return 1;
 }
+const char* C_walkdir_help = "Internal, do not use.  Instead use _G.walkdir(basepath, recurse) to iterate over a directory";
 
 // Get the next directory entry
 // (dirwalker:lightuserdata) -> string
@@ -391,6 +396,7 @@ int C_walkdir_next(lua_State* L)
     }
     return 1;
 }
+const char* C_walkdir_next_help = "";
 
 // Get information 
 // (filename:string) -> table
@@ -417,6 +423,7 @@ int C_fileinfo(lua_State* L)
 	return 1;
     }
 }
+const char* C_fileinfo_help = "(filename:string) - get stat-like info.  Returns a table { mtime : integer, isdir : boolean, size : integer }";
 
 // (pattern:lightuserdata) -> nil
 int C_re2_gc(lua_State* L)
@@ -468,6 +475,7 @@ int C_re2_compile(lua_State* L)
     lua_setmetatable(L, -2);
     return 1;
 }
+const char* C_re2_compile_help = "(pattern:string) - build an RE2 matcher.  Has two functions on the object, partialMatch(string), fullMatch(string)";
 
 // (nil) -> bool
 int C_isVerbose(lua_State* L)
@@ -475,6 +483,7 @@ int C_isVerbose(lua_State* L)
     lua_pushboolean(L, gVerbose);
     return 1;
 }
+const char* C_isVerbose_help = "returns true if Qgrep is logging extra output";
 
 // (dirname:string) -> NIL
 int C_mkdir(lua_State* L)
@@ -484,6 +493,7 @@ int C_mkdir(lua_State* L)
     lua_pushinteger(L, ret);
     return 1;
 }
+const char* C_mkdir_help = "(dirname:string) - call the C function mkdir with input string as argument";
 
 // callback for lua initiated searches
 static void luaHitCallback(void* context, const char* filename, unsigned int lineNumber, const char* lineStart, const char* lineEnd)
@@ -565,22 +575,57 @@ int C_executeSearch(lua_State* L)
     }
     return 0;
 }
+const char* C_executeSearch_help = "";
 
-luaL_Reg luaFunctions[] =
+struct FunctionHelp
 {
-    { "regex", C_re2_compile },
-    { "mkdir", C_mkdir },
-    { "qgreppath", C_qgreppath },
-    { "getpluginpath", C_getpluginpath },
-    { "fileexists", C_fileexists },
-    { "walkdir", C_walkdir },
-    { "walkdir_next", C_walkdir_next },
-    { "fileinfo", C_fileinfo },
-    { "waitForKeypress", C_waitForKeypress },
-    { "isVerbose", C_isVerbose },
-    { "execute_search", C_executeSearch},
-    { NULL, NULL}, 
+	const char*	name;
+	const char*	help;
 };
+
+int C_lua_api_help(lua_State* L);
+const char* C_lua_api_help_help = "This help";
+
+#define C_LUA_FUNC_LIST                             \
+	ENTRY( "fileexists", C_fileexists ),	        \
+	ENTRY( "fileinfo", C_fileinfo ),		        \
+	ENTRY( "getpluginpath", C_getpluginpath ),	    \
+	ENTRY( "isVerbose", C_isVerbose ),			    \
+	ENTRY( "lua_api_help", C_lua_api_help ),        \
+	ENTRY( "mkdir", C_mkdir ),					    \
+	ENTRY( "qgreppath", C_qgreppath ),			    \
+	ENTRY( "regex", C_re2_compile ),			    \
+	ENTRY( "waitForKeypress", C_waitForKeypress ),	\
+	ENTRY( "walkdir", C_walkdir ),					\
+	ENTRY( "walkdir_next", C_walkdir_next ),        \
+    ENTRY( "execute_search", C_executeSearch),	    \
+    { NULL, NULL }
+
+#define ENTRY(name, func) { name, func }
+luaL_Reg luaFunctions[] = 
+{
+	C_LUA_FUNC_LIST
+};
+#undef ENTRY
+	
+#define ENTRY(name, func) {	name, func##_help }
+FunctionHelp luaHelpList[] = {
+	C_LUA_FUNC_LIST
+};
+#undef ENTRY
+
+int C_lua_api_help(lua_State* L)
+{
+	FunctionHelp* help = luaHelpList;
+	printf("Lua API help\n-------------------------------\n");
+	while(help->name)
+	{
+		printf("%s %s\n\n", help->name, help->help);
+		help++;
+	}
+	
+	return 0;
+}
 
 // (archiveName:string, param_table) -> lightuserdata
 int C_archive_CreateArchive(lua_State* L)

@@ -114,16 +114,21 @@ void MatchInBlock(RegexMatchState* state, NamedDataBlock* block)
     if (RE2::PartialMatch(StringPiece(data, dataSize), *(state->pattern)))
     {
 	const char* lineStart = data;
+	const char* dataEnd = &data[dataSize];
 	// test each line for a match
 	while (1)
 	{
 	    lineCount++;
+		if (lineStart >= dataEnd)
+	    {
+			state->currentLineCount += lineCount;
+			return;
+	    }
 	    const char* lineEnd = (const char*)memchr(lineStart, '\n', dataSize - (lineStart - data));
 	    if (lineEnd == NULL)
-	    {
-		state->currentLineCount += lineCount;
-		return;
-	    }
+		{
+			lineEnd = dataEnd;
+		}
 	    if (RE2::PartialMatch(StringPiece(lineStart, lineEnd - lineStart), *(state->pattern)))
 	    {
 		bool doCallback = true;
