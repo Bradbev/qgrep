@@ -1,4 +1,4 @@
-gVersion = "2.0.11"
+gVersion = "2.0.12"
 gVerbose = false
 
 ------------- Util
@@ -238,8 +238,8 @@ local function norm_path(path)
    while ret:find("%.%.") do
 	  ret = ret:gsub("/%a-/%.%.", "")
    end
-   while ret:find("/%.") do
-	  ret = ret:gsub("/%.", "/")
+   while ret:find("/%./") do
+	  ret = ret:gsub("/%./", "/")
    end
    while ret:find("//") do
 	  ret = ret:gsub("//", "/")
@@ -518,6 +518,10 @@ end
 defHelp(version, 
 "Displays the version string for qgrep")
 
+function lua_api_help()
+   c.lua_api_help()
+end
+
 function main(...)
    local newArgs = tableshift(arg)
    ExecuteCommandLine(newArgs)
@@ -554,7 +558,7 @@ This is approximately the same as
   qgrep search <project> <regex> | grep -i <secondPhaseRegex>
 ]])
   
-defHelp(build, "the T option disabled trigraph indexing during the build")
+defHelp(build, "the T option disables trigraph indexing during the build")
 
 defCommand(help,         "help",          "Provides further help for commands")
 defCommand(build,        "build",         "<project> [T] regenerates the database for <project>")
@@ -564,6 +568,7 @@ defCommand(scanstalefiles, "scan-stale",  "<project> scans for stale files in th
 defCommand(files,        "files",         "<project> <regex> filters the filenames in <project> through <regex>")
 defCommand(startservice, "start-service", "Begins monitoring all projects ")
 defCommand(version,      "version",       "Prints the version")
+defCommand(lua_api_help, "lua-api-help", "Lists help for Lua API that QGrep exposes")
 
 ------------- Project config file handling
 configFile = c.qgreppath() .. "/projects.lua" 
