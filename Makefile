@@ -44,22 +44,23 @@ installer: dist
 endif
 ####################################################
 
-######################## Win32/MINGW specific
+######################## Linux specific
 ifeq ($(shell uname -s), Linux)
 PLATFORM = linux
 
 docs:
-	echo "Not making docs for linux"
+	make -C doc dist
+	cp doc/txt/readme.txt ./README.markdown
+	cp ./README.markdown $(DIST_DIR)
 .PHONY: docs
 
 lib_copy:
-	cp packages/libs_$(PLATFORM)/*.dll $(DIST_DIR)
-	cp packages/libs_$(PLATFORM)/*.so.0 $(DIST_DIR)
 	strip $(DIST_DIR)/*
 .PHONY: lib_copy
 
-installer: 
-	echo "Installer not ready"
+installer: docs dist_clean dist
+	rm -f installer/linux/*
+	sh linuxinst.sh
 
 .PHONY: installer
 
