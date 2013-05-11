@@ -560,7 +560,11 @@ void ExecuteSearch(GrepParams* param)
       cacheQArchive.a = cacheArchive;
   
       // archive handling
+      #if ARCHIVE_VERSION_NUMBER < 3000000
       archive_read_support_compression_all(cacheArchive);
+      #else
+      archive_read_support_filter_all(cacheArchive);
+      #endif
       archive_read_support_format_all(cacheArchive);
       r = archive_read_open_filename(cacheArchive, param->sourceArchiveName, 10240); 
       if (r != ARCHIVE_OK)
@@ -615,7 +619,11 @@ void ExecuteSearch(GrepParams* param)
 	      file = NULL;
 	  }
       }
+      #if ARCHIVE_VERSION_NUMBER < 3000000
       r = archive_read_finish(cacheArchive);  
+      #else
+      r = archive_read_free(cacheArchive);
+      #endif
       if (r != ARCHIVE_OK)
       {
 	  printf("archive_read_finish didn't finish properly\n");
@@ -677,9 +685,15 @@ struct QArchive* CreateArchive(const char* archiveName, ArchiveCreateParams* par
     ret->archiveFileName = strdup(archiveName);
     struct archive* a = archive_write_new();
     assert(a);
+    #if ARCHIVE_VERSION_NUMBER < 3000000
     archive_write_set_compression_gzip(a);
     archive_write_set_format_pax_restricted(a); 
     archive_write_open_file(a, archiveName);
+    #else
+    archive_write_add_filter_gzip(a);
+    archive_write_set_format_pax_restricted(a); 
+    archive_write_open_filename(a, archiveName);
+    #endif
     ret->a = a;
     return ret;
 }
@@ -725,7 +739,11 @@ void CloseArchive(struct QArchive* qa)
 	trigram_save_to_file(qa->ts, fname);
     }
     archive_write_close(a); 
+    #if ARCHIVE_VERSION_NUMBER < 3000000
     archive_write_finish(a);
+    #else
+    archive_write_free(a);
+    #endif
     delete qa;
 }
 
