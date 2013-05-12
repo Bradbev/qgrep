@@ -12,7 +12,7 @@ txt/%.txt: %.text Makefile
 	@echo Text processing $<
 	@cat $< | lua untangle.lua txt > $@
 
-all:	$(HTML_FILES) $(TXT_FILES)
+all: $(HTML_FILES) $(TXT_FILES)
 
 dist: all
 	cp txt/* $(DIST_DIR)

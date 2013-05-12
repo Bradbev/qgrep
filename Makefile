@@ -44,6 +44,29 @@ installer: dist
 endif
 ####################################################
 
+######################## Linux specific
+ifeq ($(shell uname -s), Linux)
+PLATFORM = linux
+
+docs:
+	make -C doc dist
+	cp doc/txt/readme.txt ./README.markdown
+	cp ./README.markdown $(DIST_DIR)
+.PHONY: docs
+
+lib_copy:
+	strip $(DIST_DIR)/*
+.PHONY: lib_copy
+
+installer: docs dist_clean dist
+	rm -f installer/linux/*
+	sh linuxinst.sh
+
+.PHONY: installer
+
+endif
+####################################################
+
 export BASE_DIR = $(PWD)
 export DIST_DIR = $(PWD)/dist/$(PLATFORM)
 
