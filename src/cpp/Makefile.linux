@@ -1,12 +1,12 @@
 BASE = ../../packages
 
-INCLUDES = -I../simplefilewatcher/include/ -I$(BASE)/re2_win32
+INCLUDES = -I../simplefilewatcher/include/ -I$(BASE)/re2_linux
 LIBDIR = $(BASE)/libs_osx
 LIBS = -larchive -llua5.1 -L$(BASE)/re2_win32/obj/libre2.a -lbz2 -lz
 
-IGREP_SRCS = archive.cpp stream.cpp
+IGREP_SRCS = archive.cpp stream.cpp trigram.cpp
 IGREP_OBJS = $(IGREP_SRCS:.cpp=.o) yarn.o
-RE_LIBS=-L$(BASE)/re2_win32/obj -lre2
+RE_LIBS=-L$(BASE)/re2_linux/obj -lre2 -lpthread
 
 CFLAGS = -O3 -g -Wall -Werror -fPIC $(INCLUDES) $(DIST_OPTS) -DLINUX
 CFLAGS += `pkg-config --cflags lua5.1`
@@ -21,7 +21,7 @@ libigrep.so: $(IGREP_OBJS) *.h
 	g++ -shared -o libigrep.so $(LIBS) $(IGREP_OBJS)
 
 igrepll: libigrep.so igrep.o *.h
-	g++ -o igrepll igrep.o -L. -ligrep $(CFLAGS) $(RE_LIBS)
+	g++ -o igrepll igrep.o -L. -ligrep $(CFLAGS) $(RE_LIBS) $(LIBS) 
 
 yarn.o: yarn.c yarn.c
 	g++ -o yarn.o yarn.c $(CFLAGS) -c
@@ -34,7 +34,7 @@ clean:
 igreplua.bin.h: igrep.lua
 	luac igrep.lua
 	echo "const char lua_binary_data[] = {" > igreplua.bin.h
-	od -txC -v luac.out | sed -e "s/^[0-9]*//" -e s"/ \([0-9a-f][0-9a-f]\)/0x\1,/g" -e"\$$d" >> igreplua.bin.h
+	od -txC -v luac.out | sed -e "s/^[0-9]*//" -e s"/ \([0-9a-f][0-9a-f]\)/static_cast<const char>(0x\1),/g" -e"\$$d" >> igreplua.bin.h
 	echo "};" >> igreplua.bin.h
 	rm -f luac.out
 .PHONY: lua_bin
