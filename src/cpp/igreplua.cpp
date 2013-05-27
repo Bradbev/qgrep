@@ -250,7 +250,11 @@ public:
     , mData(NULL)
     {
 	mArchive = archive_read_new();
+	#if ARCHIVE_VERSION_NUMBER < 3000000
 	archive_read_support_compression_all(mArchive);
+	#else
+	archive_read_support_filter_all(mArchive);
+	#endif
 	archive_read_support_format_all(mArchive);
 	int r = archive_read_open_filename(mArchive, archiveName, 10240); 
 	if (r != ARCHIVE_OK)
@@ -685,8 +689,8 @@ int C_archive_ArchiveNext(lua_State* L)
 int C_archive_ArchiveNextWithData(lua_State* L)
 {
     ArchiveWalker* aw = (ArchiveWalker*)lua_topointer(L, 1);
-    char* data;
-    size_t data_size;
+    char* data = NULL;
+    size_t data_size = 0;
     std::string next = aw->next_with_data(&data, &data_size);
     if (next == "")
     {
