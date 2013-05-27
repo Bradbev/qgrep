@@ -1,4 +1,4 @@
-gVersion = "2.0.12"
+gVersion = "2.0.13"
 gVerbose = false
 
 ------------- Util
@@ -233,16 +233,28 @@ function Project(tableArg)
 end
 
 local function norm_path(path)
+   loop_count = 0
+   function check_infinite_loop()
+      loop_count = loop_count + 1
+      if loop_count > 10000 then
+         print("Loop count exceeded on ", path)
+         os.exit(0)
+      end
+   end
+
    local ret = string.gsub(path, "\\", "/")
    ret = string.gsub(ret, "//", "/")
-   while ret:find("%.%.") do
-	  ret = ret:gsub("/%a-/%.%.", "")
+   while ret:find("/%.%./") do
+	  ret = ret:gsub("/%a-/%.%./", "/")
+      check_infinite_loop()
    end
    while ret:find("/%./") do
 	  ret = ret:gsub("/%./", "/")
+      check_infinite_loop()
    end
    while ret:find("//") do
 	  ret = ret:gsub("//", "/")
+      check_infinite_loop()
    end
    return ret
 end
