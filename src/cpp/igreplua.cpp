@@ -34,11 +34,11 @@ int Log(const char* fmt, ...)
 {
     if (gVerbose)
     {
-	va_list ap;
-	va_start(ap, fmt);
-	int ret = vprintf(fmt, ap);
-	va_end(ap);
-	return ret;
+        va_list ap;
+        va_start(ap, fmt);
+        int ret = vprintf(fmt, ap);
+        va_end(ap);
+        return ret;
     }
     return 0;
 }
@@ -46,16 +46,16 @@ int Log(const char* fmt, ...)
 static int traceback (lua_State *L) 
 {
     if (!lua_isstring(L, 1))  /* 'message' not a string? */
-	return 1;  /* keep it intact */
+        return 1;  /* keep it intact */
     lua_getfield(L, LUA_GLOBALSINDEX, "debug");
     if (!lua_istable(L, -1)) {
-	lua_pop(L, 1);
-	return 1;
+        lua_pop(L, 1);
+        return 1;
     }
     lua_getfield(L, -1, "traceback");
     if (!lua_isfunction(L, -1)) {
-	lua_pop(L, 2);
-	return 1;
+        lua_pop(L, 2);
+        return 1;
     }
     lua_pushvalue(L, 1);  /* pass error message */
     lua_pushinteger(L, 2);  /* skip this function and traceback */
@@ -79,11 +79,11 @@ int DoCall (lua_State *L, int narg, int clear)
 int Report (lua_State *L, int status) 
 {
     if (status && !lua_isnil(L, -1)) {
-	const char *msg = lua_tostring(L, -1);
-	if (msg == NULL) msg = "(error object is not a string)";
-	printf("%s", msg);
-	printf("\n");
-	lua_pop(L, 1);
+        const char *msg = lua_tostring(L, -1);
+        if (msg == NULL) msg = "(error object is not a string)";
+        printf("%s", msg);
+        printf("\n");
+        lua_pop(L, 1);
     }
     return status;
 }
@@ -106,9 +106,9 @@ int lua_NewTable(lua_State* L)
 }
 
 #define lua_SetTable(L, table, key, valueType, value) { \
-	lua_pushstring(L, (key));			\
-	lua_push##valueType(L, (value));		\
-	lua_settable(L, (table)); }
+        lua_pushstring(L, (key));                       \
+        lua_push##valueType(L, (value));                \
+        lua_settable(L, (table)); }
 
 void GetQgrepPath(char* buffer)
 {
@@ -117,11 +117,11 @@ void GetQgrepPath(char* buffer)
 #ifdef WIN32
     if (home)
     {
-	sprintf(buffer, "%s/.qgrep", home);
+        sprintf(buffer, "%s/.qgrep", home);
     }
     else
     {
-	sprintf(buffer, "%s%s/.qgrep", getenv("HOMEDRIVE"), getenv("HOMEPATH"));
+        sprintf(buffer, "%s%s/.qgrep", getenv("HOMEDRIVE"), getenv("HOMEPATH"));
     }
 #else
     sprintf(buffer, "%s/.qgrep", home);
@@ -135,8 +135,8 @@ char* GetQgrepColouring()
     if (!colour) colour = getenv("GREP_COLOR");
     if (colour)
     {
-	sprintf(buf, "[%sm", colour);
-	return buf;
+        sprintf(buf, "[%sm", colour);
+        return buf;
     }
     return NULL;
 }
@@ -165,73 +165,73 @@ class DirWalker
 public:
     DirWalker(const char* base, bool recursive = false)
     {
-	mDir = NULL;
-	mRecurse = recursive;
-	mDirectorySet.insert(base);
-	mCurrentFullPath = "";
-	mCurrentShortPath = "";
+        mDir = NULL;
+        mRecurse = recursive;
+        mDirectorySet.insert(base);
+        mCurrentFullPath = "";
+        mCurrentShortPath = "";
     }
     
     bool IsDir(struct dirent* entry)
     {
 #ifdef WIN32
-	const char* path = std::string(mCurrentFullPath + entry->d_name).c_str();
-	struct stat info;
-	if (stat(path, &info) == 0)
-	{
-	    return info.st_mode & S_IFDIR;
-	}
-	return false;
+        const char* path = std::string(mCurrentFullPath + entry->d_name).c_str();
+        struct stat info;
+        if (stat(path, &info) == 0)
+        {
+            return info.st_mode & S_IFDIR;
+        }
+        return false;
 #else
-	return (entry->d_type == DT_DIR);
+        return (entry->d_type == DT_DIR);
 #endif
     }
     
     std::string next()
     {
-retryDirOpen:
-	if (!mDir)
-	{
-	    if (mDirectorySet.empty()) 
-		return std::string("");
-	    StringSet::iterator head = mDirectorySet.begin();
-	    std::string nextDir = *head;
-	    //printf("next dir = %s\n", nextDir.c_str());
-	    mDirectorySet.erase(head);
-	    mCurrentShortPath = nextDir;
-	    mCurrentFullPath += nextDir;
-	    mCurrentFullPath += "/";
-	    mDir = opendir(nextDir.c_str());
-	    //printf("opendir %s %p\n", nextDir.c_str(), mDir);
-	    //printf("retry1\n");
-	    goto retryDirOpen;
-	}
-	struct dirent* entry = readdir(mDir);
-	if (entry == NULL)
-	{
-	    //printf("readdir -> null\n");
-	    closedir(mDir);
-	    //printf("mCurrentShortPath %s\n", mCurrentShortPath.c_str());
-	    //printf("mCurrentFullPath shrinking %s -> ", mCurrentFullPath.c_str());
-	    mCurrentFullPath.resize(mCurrentFullPath.length() - mCurrentShortPath.length() - 1);
-	    //printf("%s\n", mCurrentFullPath.c_str());
-	    mDir = NULL;
-	    //printf("retry2\n");
-	    goto retryDirOpen;
-	}
-	if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, ".."))
-	{
-	    //printf("retry3 %s\n", entry->d_name);
-	    goto retryDirOpen;
-	}
-	if (IsDir(entry) && mRecurse)
-	{
-	    std::string nextToInsert = mCurrentFullPath + entry->d_name;
-	    //printf("mCurrentFullPath = %s\n", mCurrentFullPath.c_str());
-	    //printf("inserting %s\n", nextToInsert.c_str());
-	    mDirectorySet.insert(nextToInsert.c_str());
-	}
-	return std::string(mCurrentFullPath + entry->d_name);
+    retryDirOpen:
+        if (!mDir)
+        {
+            if (mDirectorySet.empty()) 
+                return std::string("");
+            StringSet::iterator head = mDirectorySet.begin();
+            std::string nextDir = *head;
+            //printf("next dir = %s\n", nextDir.c_str());
+            mDirectorySet.erase(head);
+            mCurrentShortPath = nextDir;
+            mCurrentFullPath += nextDir;
+            mCurrentFullPath += "/";
+            mDir = opendir(nextDir.c_str());
+            //printf("opendir %s %p\n", nextDir.c_str(), mDir);
+            //printf("retry1\n");
+            goto retryDirOpen;
+        }
+        struct dirent* entry = readdir(mDir);
+        if (entry == NULL)
+        {
+            //printf("readdir -> null\n");
+            closedir(mDir);
+            //printf("mCurrentShortPath %s\n", mCurrentShortPath.c_str());
+            //printf("mCurrentFullPath shrinking %s -> ", mCurrentFullPath.c_str());
+            mCurrentFullPath.resize(mCurrentFullPath.length() - mCurrentShortPath.length() - 1);
+            //printf("%s\n", mCurrentFullPath.c_str());
+            mDir = NULL;
+            //printf("retry2\n");
+            goto retryDirOpen;
+        }
+        if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, ".."))
+        {
+            //printf("retry3 %s\n", entry->d_name);
+            goto retryDirOpen;
+        }
+        if (IsDir(entry) && mRecurse)
+        {
+            std::string nextToInsert = mCurrentFullPath + entry->d_name;
+            //printf("mCurrentFullPath = %s\n", mCurrentFullPath.c_str());
+            //printf("inserting %s\n", nextToInsert.c_str());
+            mDirectorySet.insert(nextToInsert.c_str());
+        }
+        return std::string(mCurrentFullPath + entry->d_name);
     }
 private:
     bool mRecurse;
@@ -249,49 +249,49 @@ public:
     : mSize(0)
     , mData(NULL)
     {
-	mArchive = archive_read_new();
-	#if ARCHIVE_VERSION_NUMBER < 3000000
-	archive_read_support_compression_all(mArchive);
-	#else
-	archive_read_support_filter_all(mArchive);
-	#endif
-	archive_read_support_format_all(mArchive);
-	int r = archive_read_open_filename(mArchive, archiveName, 10240); 
-	if (r != ARCHIVE_OK)
-	{
-	    printf("FATAL: %s", archive_error_string(mArchive));
-	    exit(1);
-	}
+        mArchive = archive_read_new();
+#if ARCHIVE_VERSION_NUMBER < 3000000
+        archive_read_support_compression_all(mArchive);
+#else
+        archive_read_support_filter_all(mArchive);
+#endif
+        archive_read_support_format_all(mArchive);
+        int r = archive_read_open_filename(mArchive, archiveName, 10240); 
+        if (r != ARCHIVE_OK)
+        {
+            printf("FATAL: %s", archive_error_string(mArchive));
+            exit(1);
+        }
     }
     
     std::string next()
     {
-	if (archive_read_next_header(mArchive, &mEntry) == ARCHIVE_OK)
-	{
-	    std::string entryName = archive_entry_pathname(mEntry);
-	    archive_read_data_skip(mArchive); 
-	    return entryName;
-	}
-	return std::string("");
+        if (archive_read_next_header(mArchive, &mEntry) == ARCHIVE_OK)
+        {
+            std::string entryName = archive_entry_pathname(mEntry);
+            archive_read_data_skip(mArchive); 
+            return entryName;
+        }
+        return std::string("");
     }
     
     std::string next_with_data(char** data_out, size_t* data_size)
     {
-	if (archive_read_next_header(mArchive, &mEntry) == ARCHIVE_OK)
-	{
-	    std::string entryName = archive_entry_pathname(mEntry);
-	    size_t size = archive_entry_size(mEntry);
-	    if (size > mSize)
-	    {
-		mSize = size;
-		mData = (char*)realloc(mData, mSize);
-	    }
-	    archive_read_data(mArchive, mData, size); 
-	    *data_out = mData;
-	    *data_size = size;
-	    return entryName;
-	}
-	return std::string("");
+        if (archive_read_next_header(mArchive, &mEntry) == ARCHIVE_OK)
+        {
+            std::string entryName = archive_entry_pathname(mEntry);
+            size_t size = archive_entry_size(mEntry);
+            if (size > mSize)
+            {
+                mSize = size;
+                mData = (char*)realloc(mData, mSize);
+            }
+            archive_read_data(mArchive, mData, size); 
+            *data_out = mData;
+            *data_size = size;
+            return entryName;
+        }
+        return std::string("");
     }
 private:
     struct archive* mArchive;
@@ -318,11 +318,11 @@ int C_waitForKeypress(lua_State* L)
     int select_result = select( 1, &read_fds, NULL, NULL, &timeout );
     if (select_result <= 0)
     {
-	lua_pushboolean(L, false);
+        lua_pushboolean(L, false);
     }
     else
     {
-	lua_pushboolean(L, true);
+        lua_pushboolean(L, true);
     }
     return 1;
 #else
@@ -344,15 +344,15 @@ const char* C_qgreppath_help = "returns the directory that Qgrep loads archive f
 
 int C_getpluginpath(lua_State* L)
 {
-	const char* plugin_path = GetPluginPath();
-	if (plugin_path) 
-	{
-		lua_pushstring(L, plugin_path);
-	}
-	else
-	{
-		lua_pushnil(L);
-	}
+    const char* plugin_path = GetPluginPath();
+    if (plugin_path) 
+    {
+        lua_pushstring(L, plugin_path);
+    }
+    else
+    {
+        lua_pushnil(L);
+    }
     return 1;
 };
 const char* C_getpluginpath_help = "returns the directory that Qgrep loads plugins from";
@@ -374,7 +374,7 @@ int C_walkdir(lua_State* L)
     bool recurse = false;
     if (lua_gettop(L) >= 2)
     {
-	recurse = lua_toboolean(L, 2);
+        recurse = lua_toboolean(L, 2);
     }
     DirWalker* dw = new DirWalker(dir, recurse);
     lua_pushlightuserdata(L, dw);
@@ -391,12 +391,12 @@ int C_walkdir_next(lua_State* L)
     std::string next = dw->next();
     if (next != "")
     {
-	lua_pushstring(L, next.c_str());
+        lua_pushstring(L, next.c_str());
     }
     else
     {
-	delete dw;
-	lua_pushnil(L);
+        delete dw;
+        lua_pushnil(L);
     }
     return 1;
 }
@@ -410,21 +410,21 @@ int C_fileinfo(lua_State* L)
     struct stat info;
     if (stat(path, &info) == 0)
     {
-	int table = lua_NewTable(L);
+        int table = lua_NewTable(L);
 #if defined(WIN32) || defined(LINUX)
-	lua_SetTable(L, table, "mtime", integer, info.st_mtime);
+        lua_SetTable(L, table, "mtime", integer, info.st_mtime);
 #else
-	lua_SetTable(L, table, "mtime", integer, info.st_mtimespec.tv_sec);
+        lua_SetTable(L, table, "mtime", integer, info.st_mtimespec.tv_sec);
 #endif
-	lua_SetTable(L, table, "isdir", boolean, info.st_mode & S_IFDIR);
-	lua_SetTable(L, table, "size",  integer, info.st_size);
-	return 1;
+        lua_SetTable(L, table, "isdir", boolean, info.st_mode & S_IFDIR);
+        lua_SetTable(L, table, "size",  integer, info.st_size);
+        return 1;
     }
     else
     {
-	// File doesn't exist
-	lua_pushnil(L);
-	return 1;
+        // File doesn't exist
+        lua_pushnil(L);
+        return 1;
     }
 }
 const char* C_fileinfo_help = "(filename:string) - get stat-like info.  Returns a table { mtime : integer, isdir : boolean, size : integer }";
@@ -469,12 +469,12 @@ int C_re2_compile(lua_State* L)
     //printf("newuserdata %p\n", pattern);
     if (luaL_newmetatable(L, "RE2Pattern"))
     {
-	int metatable = lua_gettop(L);
-	lua_SetTable(L, metatable, "__gc", cfunction, C_re2_gc);
-	lua_SetTable(L, metatable, "partialMatch", cfunction, C_re2_partialMatch);
-	lua_SetTable(L, metatable, "fullMatch", cfunction, C_re2_fullMatch);
-	lua_setfield(L, -1, "__index");                        /* hook up the __index */
-	luaL_newmetatable(L, "RE2Pattern");          /* Leave the MT on the stack */
+        int metatable = lua_gettop(L);
+        lua_SetTable(L, metatable, "__gc", cfunction, C_re2_gc);
+        lua_SetTable(L, metatable, "partialMatch", cfunction, C_re2_partialMatch);
+        lua_SetTable(L, metatable, "fullMatch", cfunction, C_re2_fullMatch);
+        lua_setfield(L, -1, "__index");                        /* hook up the __index */
+        luaL_newmetatable(L, "RE2Pattern");          /* Leave the MT on the stack */
     }
     lua_setmetatable(L, -2);
     return 1;
@@ -517,9 +517,9 @@ void test_error(int test, const char* msg)
 {
     if (!test)
     {
-	printf("%s\n", msg);
-	printf("Exiting...\n");
-	exit(0);
+        printf("%s\n", msg);
+        printf("Exiting...\n");
+        exit(0);
     }
 }
 // arg is a table with the following elements
@@ -539,96 +539,121 @@ int C_executeSearch(lua_State* L)
     GetProjectFileName(projectFile, project);
     if (FileExists(projectFile))
     {
-	// unpack the rest of the table
-	lua_getfield(L, arg_table, "regex");          /* idx:3 */
-	test_error(lua_isstring(L, -1), "execute_search needs a key of 'regex' which must be a string");
-	lua_getfield(L, arg_table, "caseSensitive");  /* idx:4 */
-	lua_getfield(L, arg_table, "regexIsLiteral"); /* idx:5 */
-	lua_getfield(L, arg_table, "ignoreTrigrams"); /* idx:6 */
-	// MUST leave the callback on the top of the stack
-	lua_getfield(L, arg_table, "callback");       /* idx:7 */
-	test_error(lua_isfunction(L, -1), "execute_search needs a key of 'callback' which must be a lua function");
-	
-	// marshal into C data
-	const char* regex   = luaL_checkstring(L, 3);
-	bool caseSensitive  = lua_isnil(L, 4) || lua_toboolean(L, 4);
-	bool regexIsLiteral = lua_toboolean(L, 5);
-	bool ignoreTrigrams = lua_toboolean(L, 6);
-	
-	GrepParams params;
-	memset(&params, 0, sizeof(params));
-	// standard parms
-	params.streamBlockSize = 1 * 1024 * 1024;
-	params.streamBlockCount = 10;
-	params.searchFilenames = false;
-	// custom parms
-	params.sourceArchiveName = projectFile;
-	params.callbackFunction = luaHitCallback;
-	params.caseSensitive = caseSensitive;
-	params.regexIsLiteral = regexIsLiteral;
-	params.ignoreTrigrams = ignoreTrigrams;
-	params.searchPattern = regex;
-	params.callbackContext = (void*)L;
-	ExecuteSearch(&params);
+        // unpack the rest of the table
+        lua_getfield(L, arg_table, "regex");          /* idx:3 */
+        test_error(lua_isstring(L, -1), "execute_search needs a key of 'regex' which must be a string");
+        lua_getfield(L, arg_table, "caseSensitive");  /* idx:4 */
+        lua_getfield(L, arg_table, "regexIsLiteral"); /* idx:5 */
+        lua_getfield(L, arg_table, "ignoreTrigrams"); /* idx:6 */
+        // MUST leave the callback on the top of the stack
+        lua_getfield(L, arg_table, "callback");       /* idx:7 */
+        test_error(lua_isfunction(L, -1), "execute_search needs a key of 'callback' which must be a lua function");
+    
+        // marshal into C data
+        const char* regex   = luaL_checkstring(L, 3);
+        bool caseSensitive  = lua_isnil(L, 4) || lua_toboolean(L, 4);
+        bool regexIsLiteral = lua_toboolean(L, 5);
+        bool ignoreTrigrams = lua_toboolean(L, 6);
+    
+        GrepParams params;
+        memset(&params, 0, sizeof(params));
+        // standard parms
+        params.streamBlockSize = 1 * 1024 * 1024;
+        params.streamBlockCount = 10;
+        params.searchFilenames = false;
+        // custom parms
+        params.sourceArchiveName = projectFile;
+        params.callbackFunction = luaHitCallback;
+        params.caseSensitive = caseSensitive;
+        params.regexIsLiteral = regexIsLiteral;
+        params.ignoreTrigrams = ignoreTrigrams;
+        params.searchPattern = regex;
+        params.callbackContext = (void*)L;
+        ExecuteSearch(&params);
     }
     else
     {
-	lua_ProjectExistsOrDie(project);
-	printf("Project is registered, but archive does not exist.\n");
-	printf("Run 'qgrep build %s' to generate archive\n", project);
+        lua_ProjectExistsOrDie(project);
+        printf("Project is registered, but archive does not exist.\n");
+        printf("Run 'qgrep build %s' to generate archive\n", project);
     }
     return 0;
 }
 const char* C_executeSearch_help = "";
 
+int C_getcwd(lua_State* L)
+{
+    char buf[PATH_MAX];
+    char* ret = getcwd(buf, PATH_MAX);
+    lua_pushstring(L, ret);
+    return 1;
+}
+const char* C_getcwd_help = "Returns the current working directory";
+
+void FastPathSearch(int argc, const char** argv);
+int C_fastpathsearch(lua_State* L)
+{
+    const char* argv[] = { "", "search", "<project>", "[options]", "regex", "2ndphaseregex" };
+    int argc = 2;
+    for (int i = 1; ;i++) {
+        if (!lua_isstring(L, i)) break;
+        argv[argc++] = luaL_checkstring(L, i);
+    }
+    FastPathSearch(argc, argv);
+    return 0;
+}
+const char* C_fastpathsearch_help = "";
+
 struct FunctionHelp
 {
-	const char*	name;
-	const char*	help;
+    const char* name;
+    const char* help;
 };
 
 int C_lua_api_help(lua_State* L);
 const char* C_lua_api_help_help = "This help";
 
-#define C_LUA_FUNC_LIST                             \
-	ENTRY( "fileexists", C_fileexists ),	        \
-	ENTRY( "fileinfo", C_fileinfo ),		        \
-	ENTRY( "getpluginpath", C_getpluginpath ),	    \
-	ENTRY( "isVerbose", C_isVerbose ),			    \
-	ENTRY( "lua_api_help", C_lua_api_help ),        \
-	ENTRY( "mkdir", C_mkdir ),					    \
-	ENTRY( "qgreppath", C_qgreppath ),			    \
-	ENTRY( "regex", C_re2_compile ),			    \
-	ENTRY( "waitForKeypress", C_waitForKeypress ),	\
-	ENTRY( "walkdir", C_walkdir ),					\
-	ENTRY( "walkdir_next", C_walkdir_next ),        \
-    ENTRY( "execute_search", C_executeSearch),	    \
+#define C_LUA_FUNC_LIST                                 \
+        ENTRY( "getcwd", C_getcwd),                     \
+        ENTRY( "execute_search", C_executeSearch),      \
+        ENTRY( "fileexists", C_fileexists ),            \
+        ENTRY( "fileinfo", C_fileinfo ),                \
+        ENTRY( "getpluginpath", C_getpluginpath ),      \
+        ENTRY( "fastpathsearch", C_fastpathsearch ),      \
+        ENTRY( "isVerbose", C_isVerbose ),              \
+        ENTRY( "lua_api_help", C_lua_api_help ),        \
+        ENTRY( "mkdir", C_mkdir ),                      \
+        ENTRY( "qgreppath", C_qgreppath ),              \
+        ENTRY( "regex", C_re2_compile ),                \
+        ENTRY( "waitForKeypress", C_waitForKeypress ),  \
+        ENTRY( "walkdir", C_walkdir ),                  \
+        ENTRY( "walkdir_next", C_walkdir_next ),        \
     { NULL, NULL }
 
 #define ENTRY(name, func) { name, func }
 luaL_Reg luaFunctions[] = 
-{
-	C_LUA_FUNC_LIST
-};
+    {
+        C_LUA_FUNC_LIST
+    };
 #undef ENTRY
-	
-#define ENTRY(name, func) {	name, func##_help }
+    
+#define ENTRY(name, func) { name, func##_help }
 FunctionHelp luaHelpList[] = {
-	C_LUA_FUNC_LIST
+    C_LUA_FUNC_LIST
 };
 #undef ENTRY
 
 int C_lua_api_help(lua_State* L)
 {
-	FunctionHelp* help = luaHelpList;
-	printf("Lua API help\n-------------------------------\n");
-	while(help->name)
-	{
-		printf("%s %s\n\n", help->name, help->help);
-		help++;
-	}
-	
-	return 0;
+    FunctionHelp* help = luaHelpList;
+    printf("Lua API help\n-------------------------------\n");
+    while(help->name)
+    {
+        printf("%s %s\n\n", help->name, help->help);
+        help++;
+    }
+    
+    return 0;
 }
 
 // (archiveName:string, param_table) -> lightuserdata
@@ -677,9 +702,9 @@ int C_archive_ArchiveNext(lua_State* L)
     std::string next = aw->next();
     if (next == "")
     {
-	delete aw;
-	lua_pushnil(L);
-	return 1;
+        delete aw;
+        lua_pushnil(L);
+        return 1;
     }
     lua_pushstring(L, next.c_str());
     return 1;
@@ -694,9 +719,9 @@ int C_archive_ArchiveNextWithData(lua_State* L)
     std::string next = aw->next_with_data(&data, &data_size);
     if (next == "")
     {
-	delete aw;
-	lua_pushnil(L);
-	return 1;
+        delete aw;
+        lua_pushnil(L);
+        return 1;
     }
     lua_pushstring(L, next.c_str());
     lua_pushlstring(L, data, data_size);
@@ -704,37 +729,37 @@ int C_archive_ArchiveNextWithData(lua_State* L)
 }
 
 luaL_Reg archiveFunctions[] =
-{
-    { "CreateArchive", C_archive_CreateArchive },
-    { "AddFileToArchive", C_archive_AddFileToArchive },
-    { "CloseArchive", C_archive_CloseArchive },
-    { "OpenArchive", C_archive_OpenArchive },
-    { "ArchiveNext", C_archive_ArchiveNext },
-    { "ArchiveNextWithData", C_archive_ArchiveNextWithData },
-    { NULL, NULL}, 
-};
+    {
+        { "CreateArchive", C_archive_CreateArchive },
+        { "AddFileToArchive", C_archive_AddFileToArchive },
+        { "CloseArchive", C_archive_CloseArchive },
+        { "OpenArchive", C_archive_OpenArchive },
+        { "ArchiveNext", C_archive_ArchiveNext },
+        { "ArchiveNextWithData", C_archive_ArchiveNextWithData },
+        { NULL, NULL}, 
+    };
 
 void InitLua()
 {
     if (!gLuaState)
     {
-	gLuaState = luaL_newstate();
-	luaL_openlibs(gLuaState);
-	luaL_register(gLuaState, "c", luaFunctions);
-	luaL_register(gLuaState, "archive", archiveFunctions);
-	int loadStatus = 0;
+        gLuaState = luaL_newstate();
+        luaL_openlibs(gLuaState);
+        luaL_register(gLuaState, "c", luaFunctions);
+        luaL_register(gLuaState, "archive", archiveFunctions);
+        int loadStatus = 0;
 #if EMBED_BINARY
-	luaL_loadbuffer(gLuaState, lua_binary_data, sizeof(lua_binary_data), "main");
-	loadStatus = ReportedDoCall(gLuaState, 0, 0);	
+        luaL_loadbuffer(gLuaState, lua_binary_data, sizeof(lua_binary_data), "main");
+        loadStatus = ReportedDoCall(gLuaState, 0, 0);   
 #else
-	printf("---- DEBUG DEBUG Doing file\n");
-	loadStatus = ReportedDoFile(gLuaState, "igrep.lua");
+        printf("---- DEBUG DEBUG Doing file\n");
+        loadStatus = ReportedDoFile(gLuaState, "igrep.lua");
 #endif
-	if (loadStatus != 0)
-	{
-	    printf("Error occured when loading project file\n");
-	    exit(1);
-	}
+        if (loadStatus != 0)
+        {
+            printf("Error occured when loading project file\n");
+            exit(1);
+        }
     }
 }
 
@@ -758,13 +783,13 @@ bool StrStartsWith(const char* str, const char* startsWith)
 {
     if (str == NULL || *str == 0)
     {
-	return false;
+        return false;
     }
     while (*str && *startsWith)
     {
-	if (tolower(*str) != tolower(*startsWith))
-	    return false;
-	str++; startsWith++;
+        if (tolower(*str) != tolower(*startsWith))
+            return false;
+        str++; startsWith++;
     }
     return true;
 }
@@ -780,28 +805,28 @@ re2::StringPiece gColourReplacement;
 
 void SetGlobalMatchColour(const char* searchpattern, re2::RE2::Options& options, const char* colour)
 {
-	bool shouldDoColour = isatty(STDOUT_FILENO);
-	
-	// Test to see if GREP_OPTIONS is forcing colour
-	if (colour && !shouldDoColour)
-	{
-		const char* grep_options = getenv("GREP_OPTIONS");
-		if (grep_options && strstr(grep_options, "--color=always"))
-		{
-			shouldDoColour = true;
-		}
-	}
+    bool shouldDoColour = isatty(STDOUT_FILENO);
+    
+    // Test to see if GREP_OPTIONS is forcing colour
+    if (colour && !shouldDoColour)
+    {
+        const char* grep_options = getenv("GREP_OPTIONS");
+        if (grep_options && strstr(grep_options, "--color=always"))
+        {
+            shouldDoColour = true;
+        }
+    }
 
     if (colour && shouldDoColour)
     {
-	char* colourPattern = new char[strlen(searchpattern) + 100];
-	sprintf(colourPattern, "(.*?)(%s)(.*)", searchpattern);
-	gColourPattern = new RE2(colourPattern, options);
-	
-	char* colourReplacement = new char[1024];
-	// magic voodoo to get ANSI colours!
-	snprintf(colourReplacement, 1024, "\\1%s\\2[0m\\3", colour);
-	gColourReplacement = re2::StringPiece(colourReplacement, strlen(colourReplacement));
+        char* colourPattern = new char[strlen(searchpattern) + 100];
+        sprintf(colourPattern, "(.*?)(%s)(.*)", searchpattern);
+        gColourPattern = new RE2(colourPattern, options);
+    
+        char* colourReplacement = new char[1024];
+        // magic voodoo to get ANSI colours!
+        snprintf(colourReplacement, 1024, "\\1%s\\2[0m\\3", colour);
+        gColourReplacement = re2::StringPiece(colourReplacement, strlen(colourReplacement));
     }
 }
 
@@ -809,13 +834,13 @@ static void printLinePart(const char* lineStart, const char* lineEnd)
 {
     if (gColourPattern)
     {
-	std::string colouredLine;
-	re2::RE2::Extract(re2::StringPiece(lineStart, lineEnd - lineStart), *gColourPattern, gColourReplacement, &colouredLine);
-	fwrite(colouredLine.c_str(), 1, colouredLine.size(), stdout); 
+        std::string colouredLine;
+        re2::RE2::Extract(re2::StringPiece(lineStart, lineEnd - lineStart), *gColourPattern, gColourReplacement, &colouredLine);
+        fwrite(colouredLine.c_str(), 1, colouredLine.size(), stdout); 
     }
     else
     {
-	fwrite(lineStart, 1, lineEnd - lineStart, stdout); 
+        fwrite(lineStart, 1, lineEnd - lineStart, stdout); 
     }
 }
 
@@ -823,8 +848,8 @@ static void ReplaceChars(std::string& s, char from, char to)
 {
     for (size_t i = 0; i < s.size(); i++)
     {
-	if (s[i] == from)
-	    s[i] = to;
+        if (s[i] == from)
+            s[i] = to;
     }
 }
 
@@ -833,13 +858,13 @@ static void grepFormatHit(void* context, const char* filename, unsigned int line
     gHitCount++;
     if (gReplaceSlashesTo)
     {
-	std::string s(filename);
-	ReplaceChars(s, gReplaceSlashesFrom, gReplaceSlashesTo);
-	printf("%s:%d:", s.c_str(), lineNumber);
+        std::string s(filename);
+        ReplaceChars(s, gReplaceSlashesFrom, gReplaceSlashesTo);
+        printf("%s:%d:", s.c_str(), lineNumber);
     }
     else
     {
-	printf("%s:%d:", filename, lineNumber);
+        printf("%s:%d:", filename, lineNumber);
     }
     printLinePart(lineStart, lineEnd);
     putchar('\n');
@@ -850,15 +875,15 @@ static void visualStudioHitFormat(void* context, const char* filename, unsigned 
     gHitCount++;
     if (gReplaceSlashesTo)
     {
-	std::string s(filename);
-	ReplaceChars(s, gReplaceSlashesFrom, gReplaceSlashesTo);
-	printf("%s (%d):", s.c_str(), lineNumber);
+        std::string s(filename);
+        ReplaceChars(s, gReplaceSlashesFrom, gReplaceSlashesTo);
+        printf("%s (%d):", s.c_str(), lineNumber);
     }
     else
     {
-	std::string s(filename);
-	ReplaceChars(s, '/', '\\');
-	printf("%s (%d):", s.c_str(), lineNumber);
+        std::string s(filename);
+        ReplaceChars(s, '/', '\\');
+        printf("%s (%d):", s.c_str(), lineNumber);
     }
     printLinePart(lineStart, lineEnd);
     putchar('\n');
@@ -873,25 +898,25 @@ void ExecuteSimpleColouredSearch(const char* archiveName, const char* options, c
     bool regexIsLiteral = false;
     bool ignoreTrigrams = false;
     bool printSummary = false;
-	bool doNotUseColour = false;
+    bool doNotUseColour = false;
     
     while (*options)
     {
-	switch (*options)
-	{
-	case 'C': doNotUseColour = true; break;
-	case 'T': ignoreTrigrams = true; break;
-	case 'l': regexIsLiteral = true; break;
-	case 'i': caseSensitive = false; ignoreTrigrams = true; break;
-	case 'f': searchFilenames = true; break;
-	case 'V': visualStudioHit = true; printSummary = true; break;
-	case 's': printSummary = true; break;
-	case '\\': gReplaceSlashesTo = '\\'; gReplaceSlashesFrom = '/'; break;
-	case '/': gReplaceSlashesTo = '/';   gReplaceSlashesFrom = '\\'; break;
-	default:
-	    break;
-	}
-	options++;
+        switch (*options)
+        {
+        case 'C': doNotUseColour = true; break;
+        case 'T': ignoreTrigrams = true; break;
+        case 'l': regexIsLiteral = true; break;
+        case 'i': caseSensitive = false; ignoreTrigrams = true; break;
+        case 'f': searchFilenames = true; break;
+        case 'V': visualStudioHit = true; printSummary = true; break;
+        case 's': printSummary = true; break;
+        case '\\': gReplaceSlashesTo = '\\'; gReplaceSlashesFrom = '/'; break;
+        case '/': gReplaceSlashesTo = '/';   gReplaceSlashesFrom = '\\'; break;
+        default:
+            break;
+        }
+        options++;
     }
      
     GrepParams params;
@@ -900,7 +925,7 @@ void ExecuteSimpleColouredSearch(const char* archiveName, const char* options, c
     params.callbackFunction = grepFormatHit;
     if (visualStudioHit)
     {
-	params.callbackFunction = visualStudioHitFormat;
+        params.callbackFunction = visualStudioHitFormat;
     }
     params.searchPattern = regex;
     params.streamBlockSize = 1 * 1024 * 1024;
@@ -912,19 +937,19 @@ void ExecuteSimpleColouredSearch(const char* archiveName, const char* options, c
     params.callbackContext = (void*)searchFilenames;
     params.secondPhasePattern = secondPhaseRegex;
     
-	if (doNotUseColour == false)
-	{
-		re2::RE2::Options colour_options;
-		colour_options.set_case_sensitive(params.caseSensitive);
-		colour_options.set_literal(params.regexIsLiteral);
-		SetGlobalMatchColour(regex, colour_options, colour);
-	}
+    if (doNotUseColour == false)
+    {
+        re2::RE2::Options colour_options;
+        colour_options.set_case_sensitive(params.caseSensitive);
+        colour_options.set_literal(params.regexIsLiteral);
+        SetGlobalMatchColour(regex, colour_options, colour);
+    }
     
     ExecuteSearch(&params);
     
     if (printSummary)
     {
-	printf("Search complete, found %d matches\n", gHitCount);
+        printf("Search complete, found %d matches\n", gHitCount);
     }
 }
 
@@ -939,54 +964,54 @@ void FastPathSearch(int argc, const char** argv)
     switch (argc)
     {
     case 6: // options regex secondPhaseRegex
-	options = argv[3];
-	regex = argv[4];
-	secondPhaseRegex = argv[5];
-	break;
+        options = argv[3];
+        regex = argv[4];
+        secondPhaseRegex = argv[5];
+        break;
     case 5: // Options must now start with '-'
-	if (argv[3][0] == '-')
-	{
-	    options = argv[3];
-	    regex = argv[4];
-	}
-	else
-	{
-	    regex = argv[3];
-	    secondPhaseRegex = argv[4];
-	}
-	break;
+        if (argv[3][0] == '-')
+        {
+            options = argv[3];
+            regex = argv[4];
+        }
+        else
+        {
+            regex = argv[3];
+            secondPhaseRegex = argv[4];
+        }
+        break;
     case 4: // regex only
-	regex = argv[3];
-	break;
+        regex = argv[3];
+        break;
     default:
-	printf("Insufficient arguments for command '%s'\n", argv[1]);
-	usage();
+        printf("Insufficient arguments for command '%s'\n", argv[1]);
+        usage();
     }
     
     char* projects[20];
     int projectCount = 0;
     for (char* project = strtok(projectNames, ",");
-	 project && projectCount < 20;
-	 project = strtok(NULL, ","), projectCount++)
+         project && projectCount < 20;
+         project = strtok(NULL, ","), projectCount++)
     {
-	projects[projectCount] = project;
+        projects[projectCount] = project;
     }
     
     for (int i = 0; i < projectCount; i++)
     {
-	const char* project = projects[i];
+        const char* project = projects[i];
     
-	GetProjectFileName(projectFile, project);
-	if (FileExists(projectFile))
-	{
-	    ExecuteSimpleColouredSearch(projectFile, options, regex, secondPhaseRegex, GetQgrepColouring());
-	}
-	else
-	{
-	    lua_ProjectExistsOrDie(project);
-	    printf("Project is registered, but archive does not exist.\n");
-	    printf("Run 'qgrep build %s' to generate archive\n", project);
-	}
+        GetProjectFileName(projectFile, project);
+        if (FileExists(projectFile))
+        {
+            ExecuteSimpleColouredSearch(projectFile, options, regex, secondPhaseRegex, GetQgrepColouring());
+        }
+        else
+        {
+            lua_ProjectExistsOrDie(project);
+            printf("Project is registered, but archive does not exist.\n");
+            printf("Run 'qgrep build %s' to generate archive\n", project);
+        }
     }
 }
 
@@ -994,19 +1019,19 @@ int main(int argc, const char** argv)
 {
     if (argc > 1)
     {
-	if (strcmp("v", argv[1]) == 0)
-	{
-	    gVerbose = true;
-	    argc--;
-	    argv = &argv[1];
-	}
-	Log("Verbosity test %s\n", "foo");
-	bool search = StrStartsWith(argv[1], "search");
-	if (search)
-	{
-	    FastPathSearch(argc, argv);
-	    goto exit_main;
-	}
+        if (strcmp("v", argv[1]) == 0)
+        {
+            gVerbose = true;
+            argc--;
+            argv = &argv[1];
+        }
+        Log("Verbosity test %s\n", "foo");
+        bool search = StrStartsWith(argv[1], "search");
+        if (search)
+        {
+            FastPathSearch(argc, argv);
+            goto exit_main;
+        }
     }
     
     // Fall through to lua handling
@@ -1014,10 +1039,10 @@ int main(int argc, const char** argv)
     lua_getfield(gLuaState, LUA_GLOBALSINDEX, "main");    
     for (int i = 0; i < argc; i++)
     {
-	lua_pushstring(gLuaState, argv[i]);
+        lua_pushstring(gLuaState, argv[i]);
     }
     ReportedDoCall(gLuaState, argc,0);
     
-exit_main:
+ exit_main:
     return 0;
 }

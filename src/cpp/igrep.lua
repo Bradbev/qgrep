@@ -488,6 +488,31 @@ defHelp(files,
 		"Searches filenames in the project instead of file contents."
 )
 
+function PathIsInProject(project, path) 
+   local l = path:len()
+   for k,v in pairs(project.tracked) do
+      local p = v.path
+      if p:sub(1, l) == path then return true end
+   end
+   return false
+end
+
+function auto_search(path, options, regex, secondPhaseRegex)
+   if path == "." then path = c.getcwd() end
+   print(path, options, regex, secondPhaseRegex)
+   for name, project in pairs(gProjects) do
+      if PathIsInProject(project, path) then
+         c.fastpathsearch(name, options, regex, secondPhaseRegex)
+      end
+   end
+end
+
+function search_no_cached(projectName, options, regex, secondPhaseRegex)
+   local project = GetProjectOrDie(projectName)
+   for f in IterateProjectFiles(project) do
+   end
+end
+
 function startservice()
    print("Press any key to stop project monitoring")
    while true do
@@ -569,6 +594,7 @@ defCommand(files,        "files",         "<project> <regex> filters the filenam
 defCommand(startservice, "start-service", "Begins monitoring all projects ")
 defCommand(version,      "version",       "Prints the version")
 defCommand(lua_api_help, "lua-api-help", "Lists help for Lua API that QGrep exposes")
+defCommand(auto_search,  "auto",          "<path> [-filsTV/\\] <regex> [secondPhaseRegex] like 'search', but will scan all projects that could include <path>")
 
 ------------- Project config file handling
 configFile = c.qgreppath() .. "/projects.lua" 
