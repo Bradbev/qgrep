@@ -18,10 +18,10 @@
 
 struct ltstr
 {
-  bool operator()(const char* s1, const char* s2) const
-  {
-    return strcmp(s1, s2) < 0;
-  }
+    bool operator()(const char* s1, const char* s2) const
+    {
+        return strcmp(s1, s2) < 0;
+    }
 };
 typedef std::set<const char*, ltstr> StringSet;
 
@@ -33,12 +33,12 @@ using namespace re2;
 extern "C" {
 #include "yarn.h"
     
-struct QArchive
-{
-    struct archive* a;
-    TrigramSplitter* ts;
-    const char* archiveFileName;
-};
+    struct QArchive
+    {
+        struct archive* a;
+        TrigramSplitter* ts;
+        const char* archiveFileName;
+    };
     
 }
 
@@ -71,6 +71,7 @@ struct RegexMatchState
     // Internal use
     const char* filename;
     unsigned int currentLineCount;
+    bool skipBinary;
 };
 
 void InitMatchState(RegexMatchState* state, RE2* pattern, RE2* secondPhasePattern, matchHitCallback callbackFunction, void* callbackContext)
@@ -81,6 +82,7 @@ void InitMatchState(RegexMatchState* state, RE2* pattern, RE2* secondPhasePatter
     state->secondPhasePattern = secondPhasePattern;
     state->filename = NULL;
     state->currentLineCount = 0;
+    state->skipBinary = true;
 }
 
 struct ConsumerThreadContext
@@ -110,54 +112,61 @@ void MatchInBlock(RegexMatchState* state, NamedDataBlock* block)
     unsigned int dataSize;
     const char* data = (const char*)GetDataFromBlock(block, &dataSize);
     int lineCount = 0;
-    // Test the whole block for a match, fast rejection
-    if (RE2::PartialMatch(StringPiece(data, dataSize), *(state->pattern)))
+    bool scanBlock = true;
+    if (state->skipBinary)
     {
-	const char* lineStart = data;
-	const char* dataEnd = &data[dataSize];
-	// test each line for a match
-	while (1)
-	{
-	    lineCount++;
-		if (lineStart >= dataEnd)
-	    {
-			state->currentLineCount += lineCount;
-			return;
-	    }
-	    const char* lineEnd = (const char*)memchr(lineStart, '\n', dataSize - (lineStart - data));
-	    if (lineEnd == NULL)
-		{
-			lineEnd = dataEnd;
-		}
-	    if (RE2::PartialMatch(StringPiece(lineStart, lineEnd - lineStart), *(state->pattern)))
-	    {
-		bool doCallback = true;
-		if (state->secondPhasePattern)
-		{
-		    char output_line[4096] = {0};
-		    int num_chars = snprintf(output_line, 4096, "%s:", GetNameFromBlock(block));
-		    int line_len = lineEnd - lineStart;
-		    int left = 4096 - num_chars;
-		    int to_copy = left < line_len ? left : line_len;
-		    memcpy(&output_line[num_chars], lineStart, to_copy);
-		    doCallback = RE2::PartialMatch(StringPiece(output_line, num_chars + to_copy), *(state->secondPhasePattern));
-		}
-		
-		if (doCallback)
-		{
-		    state->callbackFunction(state->context,
-					    GetNameFromBlock(block),
-					    lineCount,
-					    lineStart,
-					    lineEnd);
-		}
-	    }
-	    lineStart = lineEnd + 1;
-	};
+        // look for a NULL char, if we find it, assume this is binary & skip
+        void* n = memchr(data, 0, dataSize);
+        if (n) scanBlock = false;
+    }
+    // Test the whole block for a match, fast rejection
+    if (scanBlock && RE2::PartialMatch(StringPiece(data, dataSize), *(state->pattern)))
+    {
+        const char* lineStart = data;
+        const char* dataEnd = &data[dataSize];
+        // test each line for a match
+        while (1)
+        {
+            lineCount++;
+            if (lineStart >= dataEnd)
+            {
+                state->currentLineCount += lineCount;
+                return;
+            }
+            const char* lineEnd = (const char*)memchr(lineStart, '\n', dataSize - (lineStart - data));
+            if (lineEnd == NULL)
+            {
+                lineEnd = dataEnd;
+            }
+            if (RE2::PartialMatch(StringPiece(lineStart, lineEnd - lineStart), *(state->pattern)))
+            {
+                bool doCallback = true;
+                if (state->secondPhasePattern)
+                {
+                    char output_line[4096] = {0};
+                    int num_chars = snprintf(output_line, 4096, "%s:", GetNameFromBlock(block));
+                    int line_len = lineEnd - lineStart;
+                    int left = 4096 - num_chars;
+                    int to_copy = left < line_len ? left : line_len;
+                    memcpy(&output_line[num_chars], lineStart, to_copy);
+                    doCallback = RE2::PartialMatch(StringPiece(output_line, num_chars + to_copy), *(state->secondPhasePattern));
+                }
+        
+                if (doCallback)
+                {
+                    state->callbackFunction(state->context,
+                                            GetNameFromBlock(block),
+                                            lineCount,
+                                            lineStart,
+                                            lineEnd);
+                }
+            }
+            lineStart = lineEnd + 1;
+        };
     }
     else
     {
-	state->currentLineCount += LineCount(data, dataSize);
+        state->currentLineCount += LineCount(data, dataSize);
     }
 }
 
@@ -228,23 +237,23 @@ void namedDataBlockTest()
     char* d = (char*)GetDataFromBlock(orig, &size);
     for (i = 0; i < size; i++)
     {
-	d[i] = i % 255;
+        d[i] = i % 255;
     }
     NamedDataBlock* copy = CopyNamedDataBlock(orig);
     char* d2 = (char*)GetDataFromBlock(copy, &size);
     printf("Testing CopyNamedDataBlock\n");
     for (i = 0; i < size; i++)
     {
-	if (d2[i] != (char)(i % 255))
-	{
-	    printf("Fail %d %d %d\n", i, d2[i], i % 255);
-	}
+        if (d2[i] != (char)(i % 255))
+        {
+            printf("Fail %d %d %d\n", i, d2[i], i % 255);
+        }
     }
     
     char append[50];
     for (int j = 0; j < 50; j++, i++)
     {
-	append[j] = i % 255;
+        append[j] = i % 255;
     }
     
     copy = AppendDataToBlock(copy, append, 50);
@@ -252,13 +261,16 @@ void namedDataBlockTest()
     char* d3 = (char*)GetDataFromBlock(copy, &size);
     for (i = 0; i < size; i++)
     {
-	if (d3[i] != (char)(i % 255))
-	{
-	    printf("Fail part 2 %d %d %d\n", i, d3[i] % 255, (char)(i % 255));
-	}
+        if (d3[i] != (char)(i % 255))
+        {
+            printf("Fail part 2 %d %d %d\n", i, d3[i] % 255, (char)(i % 255));
+        }
     }
 }
 
+/*
+ * Consumes blocks of data and greps them
+ */
 void grepThreadFn(void* rawContext)
 {
     ConsumerThreadContext* context = (ConsumerThreadContext*)rawContext;
@@ -273,17 +285,17 @@ void grepThreadFn(void* rawContext)
     RegexMatchState state;
     while (running)
     {
-	InitMatchState(&state, pattern, secondPhasePattern, callback, context->callbackContext);
-	count++;
-	unsigned int blockSize;
-	NamedDataBlock* block = (NamedDataBlock*)GetReadBlock(s, &blockSize);
-	if (GetNameFromBlock(block)[0] == 0)
-	{
-	    ReleaseReadBlock(s);
-	    break;
-	}
-	MatchInBlock(&state, block);
-	ReleaseReadBlock(s);
+        InitMatchState(&state, pattern, secondPhasePattern, callback, context->callbackContext);
+        count++;
+        unsigned int blockSize;
+        NamedDataBlock* block = (NamedDataBlock*)GetReadBlock(s, &blockSize);
+        if (GetNameFromBlock(block)[0] == 0)
+        {
+            ReleaseReadBlock(s);
+            break;
+        }
+        MatchInBlock(&state, block);
+        ReleaseReadBlock(s);
     }
 }
 
@@ -297,11 +309,11 @@ int LineCount(const char* input, int len)
     int count = 0;
     while (1)
     {
-	i = (const char*)memchr(i, '\n', len - (i - input));
-	if (i == NULL)
-	    return count;
-	count++;
-	i++;
+        i = (const char*)memchr(i, '\n', len - (i - input));
+        if (i == NULL)
+            return count;
+        count++;
+        i++;
     };
 }
 
@@ -311,17 +323,17 @@ int CountMatchesInBlock(const char* block, int blockSize, RE2& pattern)
     const char* lineStart = block;
     if (RE2::PartialMatch(StringPiece(block, blockSize), pattern))
     {
-	while (1)
-	{
-	    const char* lineEnd = (const char*)memchr(lineStart, '\n', blockSize - (lineStart - block));
-	    if (lineEnd == NULL)
-		return count;
-	    if (RE2::PartialMatch(StringPiece(lineStart, lineEnd - lineStart), pattern))
-	    {
-		count++;
-	    }
-	    lineStart = lineEnd + 1;
-	};
+        while (1)
+        {
+            const char* lineEnd = (const char*)memchr(lineStart, '\n', blockSize - (lineStart - block));
+            if (lineEnd == NULL)
+                return count;
+            if (RE2::PartialMatch(StringPiece(lineStart, lineEnd - lineStart), pattern))
+            {
+                count++;
+            }
+            lineStart = lineEnd + 1;
+        };
     }
     return 0;
 }
@@ -333,25 +345,25 @@ bool MatchPatternInLine(const StringPiece& line, RE2& pattern)
 
 int ReadDataFromFileOrArchive(struct QArchive* qa, FILE* f, void* dest, int bytesToRead)
 {
-    struct archive* a = qa->a;
+    struct archive* a = qa ? qa->a : NULL;
     if (f)
-	return fread(dest, 1, bytesToRead, f);
+        return fread(dest, 1, bytesToRead, f);
     if (a)
-	return archive_read_data(a, dest, bytesToRead);
+        return archive_read_data(a, dest, bytesToRead);
     assert(0);
     return 0;
 }
 /*
-#implementationdetail
-Correctness is king:
- - but pathologically large lines or files are unreasonable, ie forget
- about memory constraints in this case
- - Set reasonable sizes (1Mb files)
- - Fallback to a slower single threaded path
+  #implementationdetail
+  Correctness is king:
+  - but pathologically large lines or files are unreasonable, ie forget
+  about memory constraints in this case
+  - Set reasonable sizes (1Mb files)
+  - Fallback to a slower single threaded path
   - Copy the write block out
   - Work on the file until in memory
   - wait for stream to clear
- */
+*/
 int gFallback = 0;
 int gFallbackExpands = 0;
 void LargeFileFallback(struct QArchive* qa, FILE* f, NamedDataBlock* alreadyReadData, ConsumerThreadContext* context)
@@ -366,10 +378,10 @@ void LargeFileFallback(struct QArchive* qa, FILE* f, NamedDataBlock* alreadyRead
     int readSize;
     do
     {
-	gFallbackExpands++;
-	readSize = ReadDataFromFileOrArchive(qa, f, readBlock, expandSize);
-	if (readSize < 0) break;
-	block = AppendDataToBlock(block, readBlock, readSize);
+        gFallbackExpands++;
+        readSize = ReadDataFromFileOrArchive(qa, f, readBlock, expandSize);
+        if (readSize < 0) break;
+        block = AppendDataToBlock(block, readBlock, readSize);
     } while (readSize == expandSize);
     
     free(readBlock);
@@ -391,33 +403,33 @@ void LoadStaleSets(const char* filename)
     FILE* f = fopen(staleName, "r");
     if (f)
     {
-	while (fgets(line, 1024, f))
-	{
-	    // remove trailing \n
-	    line[strlen(line)-1] = 0;
-	    char* str = strdup(line);
-	    if (str[0] == '-')
-		gDeletedFiles.insert(&str[1]);
-	    else
-		gStaleFiles.insert(str);
-	}
-	fclose(f);
+        while (fgets(line, 1024, f))
+        {
+            // remove trailing \n
+            line[strlen(line)-1] = 0;
+            char* str = strdup(line);
+            if (str[0] == '-')
+                gDeletedFiles.insert(&str[1]);
+            else
+                gStaleFiles.insert(str);
+        }
+        fclose(f);
     }
     /*
-    printf("Stale files are \n");
-    for (StringSet::iterator i = gStaleFiles.begin();
-	 i != gStaleFiles.end();
-	 ++i)
-    {
-	printf("%s\n", *i);
-    }
-    printf("Deleted files are \n");
-    for (StringSet::iterator i = gDeletedFiles.begin();
-	 i != gDeletedFiles.end();
-	 ++i)
-    {
-	printf("%s\n", *i);
-    }
+      printf("Stale files are \n");
+      for (StringSet::iterator i = gStaleFiles.begin();
+      i != gStaleFiles.end();
+      ++i)
+      {
+      printf("%s\n", *i);
+      }
+      printf("Deleted files are \n");
+      for (StringSet::iterator i = gDeletedFiles.begin();
+      i != gDeletedFiles.end();
+      ++i)
+      {
+      printf("%s\n", *i);
+      }
     */
 }
 
@@ -434,8 +446,8 @@ void ExecuteContentSearch(Stream* dataStream, struct QArchive* cacheQArchive, FI
     SetUsedDataSize(block, readlen);
     if (readlen == readSize)
     {
-	LargeFileFallback(cacheQArchive, file, block, context);
-	SetUsedDataSize(block, 0);
+        LargeFileFallback(cacheQArchive, file, block, context);
+        SetUsedDataSize(block, 0);
     }
     PutWriteBlock(dataStream);
 }
@@ -448,7 +460,7 @@ FILE* OpenFile(std::string& baseDirectory, const char* filename)
     FILE* file = NULL;
     file = fopen(trueName.c_str(), "rb");
     if (!file)
-	file = fopen(filename, "rb");
+        file = fopen(filename, "rb");
     return file;
 }
 
@@ -466,15 +478,68 @@ void trigram_callback(void* vcontext, const char* filename)
     
     if (!SetContains(gDeletedFiles, filename))
     {
-	FILE *f = fopen(filename, "r");
-	if (f)
-	{
-	    context->handledFileSet->insert(strdup(filename));
-	    ExecuteContentSearch(context->dataStream, context->qa, f, NULL, filename, context->context);
-	    fclose(f);
-	}
+        FILE *f = fopen(filename, "r");
+        if (f)
+        {
+            context->handledFileSet->insert(strdup(filename));
+            ExecuteContentSearch(context->dataStream, context->qa, f, NULL, filename, context->context);
+            fclose(f);
+        }
     }
 }
+
+struct LooseFileSearchContext
+{
+    ConsumerThreadContext* threadContext;
+    thread* consumer;
+};
+
+LooseFileSearchContext* CreateSearchContext(GrepParams* param)
+{
+    LooseFileSearchContext* lfsc = new LooseFileSearchContext();
+    ConsumerThreadContext* context = new ConsumerThreadContext();
+    context->dataStream = CreateStream(param->streamBlockSize, param->streamBlockCount);
+    context->callbackFunction = param->callbackFunction;
+    context->callbackContext = param->callbackContext;
+    RE2::Options options;
+    options.set_case_sensitive(param->caseSensitive);
+    options.set_literal(param->regexIsLiteral);
+    context->pattern = new RE2(param->searchPattern, options);
+    
+    lfsc->consumer = launch(grepThreadFn, context);
+    lfsc->threadContext = context;
+    return lfsc;
+}
+
+void SearchInLooseFile(LooseFileSearchContext* lfsc, const char* filename)
+{
+    FILE* file = fopen(filename, "rb");
+    if (file)
+    {
+        Stream* dataStream = lfsc->threadContext->dataStream;
+        ExecuteContentSearch(dataStream, NULL, file, NULL, filename, lfsc->threadContext);
+        fclose(file);
+        file = NULL;
+    }
+}
+
+void DestroySearchContext(LooseFileSearchContext* lfsc) 
+{
+    ConsumerThreadContext* context = lfsc->threadContext;
+    
+    unsigned int blockSize;
+    void* rawBlock = GetWriteBlock(context->dataStream, &blockSize);
+    NamedDataBlock* endBlock = CreateNamedDataBlock(NULL, rawBlock, blockSize);
+    SetUsedDataSize(endBlock, 0);
+    PutWriteBlock(context->dataStream);
+    //printf("Waiting on join\n");
+    join(lfsc->consumer);
+  
+    delete context->pattern;
+    delete context;
+    DestroyStream(context->dataStream);
+}
+
 
 /*
  * @bbeveridge
@@ -497,183 +562,165 @@ void trigram_callback(void* vcontext, const char* filename)
  */
 void ExecuteSearch(GrepParams* param)
 {
-  struct archive_entry *entry;
-  int r;
-  StringSet staleFilesThatHaveBeenSearched;
+    struct archive_entry *entry;
+    int r;
+    StringSet staleFilesThatHaveBeenSearched;
   
-  LoadStaleSets(param->sourceArchiveName);
+    LoadStaleSets(param->sourceArchiveName);
   
-  ConsumerThreadContext* context = new ConsumerThreadContext();
-  Stream* dataStream = CreateStream(param->streamBlockSize, param->streamBlockCount);
-  context->dataStream = dataStream;
-  context->callbackFunction = param->callbackFunction;
-  context->callbackContext = param->callbackContext;
-  RE2::Options options;
-  options.set_case_sensitive(param->caseSensitive);
-  options.set_literal(param->regexIsLiteral);
-  context->pattern = new RE2(param->searchPattern, options);
-  if (context->pattern->ok() == false)
-  {
-      printf("FATAL: Primary regex expression has an error : %s\n", context->pattern->error().c_str());
-      exit(1);
-  }
-  if (param->secondPhasePattern)
-  {
-      RE2::Options nocase;
-      nocase.set_case_sensitive(false);
-      context->secondPhasePattern = new RE2(param->secondPhasePattern, nocase);
-      
-      if (context->secondPhasePattern->ok() == false)
-      {
-          printf("FATAL: Secondary regex expression has an error : %s\n", context->secondPhasePattern->error().c_str());
-          exit(1);
-      }
-  }
-  
-  thread* consumer = launch(grepThreadFn, context);
-  
-  struct QArchive cacheQArchive;
-  cacheQArchive.a = NULL;
-  std::string baseDirectory = GetBaseFromFilename(param->sourceArchiveName).c_str();
-  if (!param->searchFilenames && !param->ignoreTrigrams)
-  {
-      // trigram search 
-      TrigramContext tri_context;
-      tri_context.dataStream = dataStream;
-      tri_context.context = context;
-      tri_context.qa = &cacheQArchive;
-      tri_context.handledFileSet = &staleFilesThatHaveBeenSearched;
-      char trifile[1024];
-      sprintf(trifile, "%s.tris", param->sourceArchiveName);
-  
-      TrigramSplitter* ts = trigram_load_from_file(trifile);
-      if (ts && trigram_string_is_searchable(param->searchPattern))
-      {
-	  if (trigram_iterate_matching_files(ts, param->searchPattern, &tri_context, trigram_callback, 0))
-	  {
-	      goto skip_archive;
-	  }
-	  else
-	  {
-	      //printf("exiting trigram search early!\n");
-	  }
-      }
-  }
-  
-  {
-      struct archive* cacheArchive = archive_read_new();
-      cacheQArchive.a = cacheArchive;
-  
-      // archive handling
-      #if ARCHIVE_VERSION_NUMBER < 3000000
-      archive_read_support_compression_all(cacheArchive);
-      #else
-      archive_read_support_filter_all(cacheArchive);
-      #endif
-      archive_read_support_format_all(cacheArchive);
-      r = archive_read_open_filename(cacheArchive, param->sourceArchiveName, 10240); 
-      if (r != ARCHIVE_OK)
-      {
-	  printf("FATAL: %s", archive_error_string(cacheArchive));
-	  exit(1);
-      }
-  
-      while (archive_read_next_header(cacheArchive, &entry) == ARCHIVE_OK) {
-	  const char* entryName = archive_entry_pathname(entry);
-      
-	  // Don't return results from deleted files
-	  if (SetContains(gDeletedFiles, entryName))
-	  {
-	      archive_read_data_skip(cacheArchive); 
-	      continue;
-	  }
-      
-	  // Handle file name search
-	  if (param->searchFilenames)
-	  {
-	      if (RE2::PartialMatch(entryName, *(context->pattern)))
-	      {
-		  param->callbackFunction(param->callbackContext, entryName, 1, 0, 0);
-		  staleFilesThatHaveBeenSearched.insert(strdup(entryName));
-	      }
-	      archive_read_data_skip(cacheArchive); 
-	      continue;
-	  }
-      
-	  FILE* file = NULL;
-	  /* Handle files that are stale in the cache */
-	  if (SetContains(gStaleFiles, entryName))
-	  {
-	      staleFilesThatHaveBeenSearched.insert(strdup(entryName));
-	      file = OpenFile(baseDirectory, entryName);
-	      if (!file)
-	      {
-		  printf("[WARN] Unable to open %s, falling back to cache\n", entryName);
-	      }
-	      else
-	      {
-		  archive_read_data_skip(cacheArchive); 
-	      }
-	  }
-      
-	  ExecuteContentSearch(dataStream, &cacheQArchive, file, entry, entryName, context);
-      
-	  if (file)
-	  {
-	      fclose(file);
-	      file = NULL;
-	  }
-      }
-      #if ARCHIVE_VERSION_NUMBER < 3000000
-      r = archive_read_finish(cacheArchive);  
-      #else
-      r = archive_read_free(cacheArchive);
-      #endif
-      if (r != ARCHIVE_OK)
-      {
-	  printf("archive_read_finish didn't finish properly\n");
-	  exit(1);
-      }
-  }
-  
-skip_archive: 
-  // Handle added files
-  StringSet::iterator end = gStaleFiles.end();
-  for (StringSet::iterator i = gStaleFiles.begin(); i != end; ++i)
-  {
-      if (SetContains(staleFilesThatHaveBeenSearched, *i))
-	  continue;
-      
-      if (param->searchFilenames)
-      {
-	  if (RE2::PartialMatch(*i, *(context->pattern)))
-	  {
-	      param->callbackFunction(param->callbackContext, *i, 1, 0, 0);
-	  }
-	  continue;
-      }
+    LooseFileSearchContext* lfsc = CreateSearchContext(param);
+    ConsumerThreadContext* context = lfsc->threadContext;
+    Stream* dataStream = context->dataStream;
 
-      FILE* file = OpenFile(baseDirectory, *i);
-      if (file)
-      {
-	  ExecuteContentSearch(dataStream, &cacheQArchive, file, NULL, *i, context);
-	  fclose(file);
-	  file = NULL;
-      }
-  }
-
-  unsigned int blockSize;
-  void* rawBlock = GetWriteBlock(dataStream, &blockSize);
-  NamedDataBlock* endBlock = CreateNamedDataBlock(NULL, rawBlock, blockSize);
-  SetUsedDataSize(endBlock, 0);
-  PutWriteBlock(dataStream);
-  //printf("Waiting on join\n");
-  join(consumer);
+    if (context->pattern->ok() == false)
+    {
+        printf("FATAL: Primary regex expression has an error : %s\n", context->pattern->error().c_str());
+        exit(1);
+    }
+    if (param->secondPhasePattern)
+    {
+        RE2::Options nocase;
+        nocase.set_case_sensitive(false);
+        context->secondPhasePattern = new RE2(param->secondPhasePattern, nocase);
+      
+        if (context->secondPhasePattern->ok() == false)
+        {
+            printf("FATAL: Secondary regex expression has an error : %s\n", context->secondPhasePattern->error().c_str());
+            exit(1);
+        }
+    }
   
-  delete context->pattern;
-  delete context;
-  DestroyStream(dataStream);
-  //printf("gFallback %d gFallbackExpands %d\n", gFallback, gFallbackExpands);
+    struct QArchive cacheQArchive;
+    cacheQArchive.a = NULL;
+    std::string baseDirectory = GetBaseFromFilename(param->sourceArchiveName).c_str();
+    if (!param->searchFilenames && !param->ignoreTrigrams)
+    {
+        // trigram search 
+        TrigramContext tri_context;
+        tri_context.dataStream = dataStream;
+        tri_context.context = context;
+        tri_context.qa = &cacheQArchive;
+        tri_context.handledFileSet = &staleFilesThatHaveBeenSearched;
+        char trifile[1024];
+        sprintf(trifile, "%s.tris", param->sourceArchiveName);
+  
+        TrigramSplitter* ts = trigram_load_from_file(trifile);
+        if (ts && trigram_string_is_searchable(param->searchPattern))
+        {
+            if (trigram_iterate_matching_files(ts, param->searchPattern, &tri_context, trigram_callback, 0))
+            {
+                goto skip_archive;
+            }
+            else
+            {
+                //printf("exiting trigram search early!\n");
+            }
+        }
+    }
+  
+    {
+        struct archive* cacheArchive = archive_read_new();
+        cacheQArchive.a = cacheArchive;
+  
+        // archive handling
+#if ARCHIVE_VERSION_NUMBER < 3000000
+        archive_read_support_compression_all(cacheArchive);
+#else
+        archive_read_support_filter_all(cacheArchive);
+#endif
+        archive_read_support_format_all(cacheArchive);
+        r = archive_read_open_filename(cacheArchive, param->sourceArchiveName, 10240); 
+        if (r != ARCHIVE_OK)
+        {
+            printf("FATAL: %s", archive_error_string(cacheArchive));
+            exit(1);
+        }
+  
+        while (archive_read_next_header(cacheArchive, &entry) == ARCHIVE_OK) {
+            const char* entryName = archive_entry_pathname(entry);
+      
+            // Don't return results from deleted files
+            if (SetContains(gDeletedFiles, entryName))
+            {
+                archive_read_data_skip(cacheArchive); 
+                continue;
+            }
+      
+            // Handle file name search
+            if (param->searchFilenames)
+            {
+                if (RE2::PartialMatch(entryName, *(context->pattern)))
+                {
+                    param->callbackFunction(param->callbackContext, entryName, 1, 0, 0);
+                    staleFilesThatHaveBeenSearched.insert(strdup(entryName));
+                }
+                archive_read_data_skip(cacheArchive); 
+                continue;
+            }
+      
+            FILE* file = NULL;
+            /* Handle files that are stale in the cache */
+            if (SetContains(gStaleFiles, entryName))
+            {
+                staleFilesThatHaveBeenSearched.insert(strdup(entryName));
+                file = OpenFile(baseDirectory, entryName);
+                if (!file)
+                {
+                    printf("[WARN] Unable to open %s, falling back to cache\n", entryName);
+                }
+                else
+                {
+                    archive_read_data_skip(cacheArchive); 
+                }
+            }
+      
+            ExecuteContentSearch(dataStream, &cacheQArchive, file, entry, entryName, context);
+      
+            if (file)
+            {
+                fclose(file);
+                file = NULL;
+            }
+        }
+#if ARCHIVE_VERSION_NUMBER < 3000000
+        r = archive_read_finish(cacheArchive);  
+#else
+        r = archive_read_free(cacheArchive);
+#endif
+        if (r != ARCHIVE_OK)
+        {
+            printf("archive_read_finish didn't finish properly\n");
+            exit(1);
+        }
+    }
+  
+ skip_archive: 
+    // Handle added files
+    StringSet::iterator end = gStaleFiles.end();
+    for (StringSet::iterator i = gStaleFiles.begin(); i != end; ++i)
+    {
+        if (SetContains(staleFilesThatHaveBeenSearched, *i))
+            continue;
+      
+        if (param->searchFilenames)
+        {
+            if (RE2::PartialMatch(*i, *(context->pattern)))
+            {
+                param->callbackFunction(param->callbackContext, *i, 1, 0, 0);
+            }
+            continue;
+        }
+
+        FILE* file = OpenFile(baseDirectory, *i);
+        if (file)
+        {
+            ExecuteContentSearch(dataStream, &cacheQArchive, file, NULL, *i, context);
+            fclose(file);
+            file = NULL;
+        }
+    }
+
+    DestroySearchContext(lfsc);
 }
 
 struct QArchive* CreateArchive(const char* archiveName, ArchiveCreateParams* param)
@@ -681,24 +728,24 @@ struct QArchive* CreateArchive(const char* archiveName, ArchiveCreateParams* par
     struct QArchive* ret = new QArchive;
     if (param->useTrigrams)
     {
-	ret->ts = trigram_new();
+        ret->ts = trigram_new();
     }
     else
     {
-	ret->ts = NULL;
+        ret->ts = NULL;
     }
     ret->archiveFileName = strdup(archiveName);
     struct archive* a = archive_write_new();
     assert(a);
-    #if ARCHIVE_VERSION_NUMBER < 3000000
+#if ARCHIVE_VERSION_NUMBER < 3000000
     archive_write_set_compression_gzip(a);
     archive_write_set_format_pax_restricted(a); 
     archive_write_open_file(a, archiveName);
-    #else
+#else
     archive_write_add_filter_gzip(a);
     archive_write_set_format_pax_restricted(a); 
     archive_write_open_filename(a, archiveName);
-    #endif
+#endif
     ret->a = a;
     return ret;
 }
@@ -712,7 +759,7 @@ void AddFileToArchive(struct QArchive* qa, const char* filename)
     int len;
     int fd;
     
-//    printf("%s\n", filename);
+    //    printf("%s\n", filename);
     stat(filename, &st);
     entry = archive_entry_new();
     archive_entry_set_pathname(entry, filename);
@@ -725,9 +772,9 @@ void AddFileToArchive(struct QArchive* qa, const char* filename)
     fd = open(filename, O_RDONLY);
     len = read(fd, buff, sizeof(buff));
     while ( len > 0 ) {
-	if (qa->ts) trigram_add_data(qa->ts, buff, len);
-	archive_write_data(a, buff, len);
-	len = read(fd, buff, sizeof(buff));
+        if (qa->ts) trigram_add_data(qa->ts, buff, len);
+        archive_write_data(a, buff, len);
+        len = read(fd, buff, sizeof(buff));
     }
     close(fd);
     if (qa->ts) trigram_stop_file(qa->ts);
@@ -739,16 +786,16 @@ void CloseArchive(struct QArchive* qa)
     struct archive* a = qa->a;
     if (qa->ts)
     {
-	char fname[1024];
-	sprintf(fname, "%s.tris", qa->archiveFileName);
-	trigram_save_to_file(qa->ts, fname);
+        char fname[1024];
+        sprintf(fname, "%s.tris", qa->archiveFileName);
+        trigram_save_to_file(qa->ts, fname);
     }
     archive_write_close(a); 
-    #if ARCHIVE_VERSION_NUMBER < 3000000
+#if ARCHIVE_VERSION_NUMBER < 3000000
     archive_write_finish(a);
-    #else
+#else
     archive_write_free(a);
-    #endif
+#endif
     delete qa;
 }
 

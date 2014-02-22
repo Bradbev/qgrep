@@ -1,4 +1,4 @@
-gVersion = "2.0.12"
+gVersion = "2.0.14"
 gVerbose = false
 
 ------------- Util
@@ -453,12 +453,17 @@ end
 function files(projectNames, regex)
    for _, projectName in pairs(split(projectNames)) do
 	  local project = GetProjectOrDie(projectName)
-	  if not c.fileexists(project.filenamesFile) then
-		 print("Unable to find " .. project.filenamesFile .. ", please use the build command")
-		 return
-	  end
 	  regex = regex or "."
 	  local pattern = c.regex("(?i)"..regex)
+      if not c.fileexists(project.filenamesFile) then
+         for f in IterateProjectFiles(project) do
+            if pattern:partialMatch(f) then
+               print(f)
+            end
+         end
+		 return
+	  end
+
 	  local stale = {}
 	  local deleted = {}
 	  if c.fileexists(project.staleFile) then
@@ -489,28 +494,47 @@ defHelp(files,
 )
 
 function PathIsInProject(project, path) 
-   local l = path:len()
    for k,v in pairs(project.tracked) do
       local p = v.path
-      if p:sub(1, l) == path then return true end
+      if path:sub(1, p:len()) == p then return true end
    end
    return false
 end
 
+function ProjectIsAuto(project)
+   return (project.properties.auto == nil) or (project.properties.auto ~= false)
+end
+
+gPath = ""
 function auto_search(path, options, regex, secondPhaseRegex)
    if path == "." then path = c.getcwd() end
-   print(path, options, regex, secondPhaseRegex)
+   gPath = path
+   --print(path, options, regex, secondPhaseRegex)
    for name, project in pairs(gProjects) do
-      if PathIsInProject(project, path) then
+      if PathIsInProject(project, path) and ProjectIsAuto(project) then
          c.fastpathsearch(name, options, regex, secondPhaseRegex)
       end
    end
 end
 
-function search_no_cached(projectName, options, regex, secondPhaseRegex)
-   local project = GetProjectOrDie(projectName)
-   for f in IterateProjectFiles(project) do
+function autofiles(path, regex)
+   if path == "." then path = c.getcwd() end
+   gPath = path
+   for name, project in pairs(gProjects) do
+      if PathIsInProject(project, path) and ProjectIsAuto(project) then
+         files(name, regex)
+      end
    end
+end
+
+function no_db_search(projectName, options, regex, secondPhaseRegex)
+   local project = GetProjectOrDie(projectName)
+   --print("no_db_search", projectName, options, regex, secondPhaseRegex)
+   local context = c.createSearchContext(gPath, options, regex, secondPhaseRegex)
+   for f in IterateProjectFiles(project) do
+      c.searchInLooseFile(context, f)
+   end
+   c.destroySearchContext(context)
 end
 
 function startservice()
@@ -593,8 +617,11 @@ defCommand(scanstalefiles, "scan-stale",  "<project> scans for stale files in th
 defCommand(files,        "files",         "<project> <regex> filters the filenames in <project> through <regex>")
 defCommand(startservice, "start-service", "Begins monitoring all projects ")
 defCommand(version,      "version",       "Prints the version")
-defCommand(lua_api_help, "lua-api-help", "Lists help for Lua API that QGrep exposes")
+defCommand(lua_api_help, "lua-api-help",  "Lists help for Lua API that QGrep exposes")
 defCommand(auto_search,  "auto",          "<path> [-filsTV/\\] <regex> [secondPhaseRegex] like 'search', but will scan all projects that could include <path>")
+defCommand(autofiles,  "autofiles",      "<path> <regex> like 'files', but will scan all projects that could include <path>")
+defCommand(no_db_search, "no_db_search",  "projectName, options, regex, secondPhaseRegex")
+
 
 ------------- Project config file handling
 configFile = c.qgreppath() .. "/projects.lua" 
