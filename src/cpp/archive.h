@@ -21,8 +21,12 @@ struct GrepParams
 };
 void ExecuteSearch(GrepParams* param);
     
-//void ExecuteSimpleSearch(const char* archiveName, const char* options, const char* regex, const char* secondPhaseRegex);
-//void ExecuteSimpleColouredSearch(const char* archiveName, const char* options, const char* regex, const char* secondPhaseRegex, const char* colour);
+// functions to assemble a threaded pipeline and use it to search in
+// individual files
+struct LooseFileSearchContext;    
+LooseFileSearchContext* CreateSearchContext(GrepParams* param);
+void SearchInLooseFile(LooseFileSearchContext* lfsc, const char* filename);
+void DestroySearchContext(LooseFileSearchContext* lfsc);
     
 // Creation functions    
 struct ArchiveCreateParams

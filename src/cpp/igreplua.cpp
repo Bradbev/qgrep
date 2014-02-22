@@ -604,6 +604,56 @@ int C_fastpathsearch(lua_State* L)
 }
 const char* C_fastpathsearch_help = "";
 
+void PopulateParamsForSimpleColouredSearch(GrepParams* params, bool* printSummary, const char* archiveName, const char* options, const char* regex, const char* secondPhaseRegex, const char* colour);
+static void grepFormatHitTrimmed(void* context, const char* filename, unsigned int lineNumber, const char* lineStart, const char* lineEnd);
+/* args: basePath, options, regex, secondPhaseRegex */
+int C_createSearchContext(lua_State* L)
+{
+    GrepParams params;
+    const char* options = "";
+    const char* regex = "";
+    const char* secondPhaseRegex = NULL;
+    const char* basepath = luaL_checkstring(L,1);
+    
+    const char* arg1 = luaL_checkstring(L,2);
+    if (arg1[0] == '-')
+    {
+        options = arg1;
+        regex = luaL_checkstring(L,3);
+        secondPhaseRegex = lua_tostring(L,4);
+    }
+    else
+    {
+        regex = luaL_checkstring(L,2);
+        secondPhaseRegex = lua_tostring(L,3);
+    }
+    bool printSummary;
+    PopulateParamsForSimpleColouredSearch(&params, &printSummary, NULL, options, regex, secondPhaseRegex, GetQgrepColouring());
+    params.callbackFunction = grepFormatHitTrimmed;
+    params.callbackContext = (void*)basepath;
+    LooseFileSearchContext* lfsc = CreateSearchContext(&params);
+    lua_pushlightuserdata(L, lfsc);
+    return 1;
+}
+const char* C_createSearchContext_help = "";
+
+int C_searchInLooseFile(lua_State* L)
+{
+    LooseFileSearchContext* lfsc = (LooseFileSearchContext*)lua_touserdata(L,1);
+    const char* name = luaL_checkstring(L, 2);
+    SearchInLooseFile(lfsc, name);
+    return 0;
+}
+const char* C_searchInLooseFile_help = "";
+
+int C_destroySearchContext(lua_State* L)
+{
+    LooseFileSearchContext* lfsc = (LooseFileSearchContext*)lua_touserdata(L,1);
+    DestroySearchContext(lfsc);
+    return 0;
+}
+const char* C_destroySearchContext_help = "";
+
 struct FunctionHelp
 {
     const char* name;
@@ -614,20 +664,23 @@ int C_lua_api_help(lua_State* L);
 const char* C_lua_api_help_help = "This help";
 
 #define C_LUA_FUNC_LIST                                 \
-        ENTRY( "getcwd", C_getcwd),                     \
-        ENTRY( "execute_search", C_executeSearch),      \
-        ENTRY( "fileexists", C_fileexists ),            \
-        ENTRY( "fileinfo", C_fileinfo ),                \
-        ENTRY( "getpluginpath", C_getpluginpath ),      \
-        ENTRY( "fastpathsearch", C_fastpathsearch ),      \
-        ENTRY( "isVerbose", C_isVerbose ),              \
-        ENTRY( "lua_api_help", C_lua_api_help ),        \
-        ENTRY( "mkdir", C_mkdir ),                      \
-        ENTRY( "qgreppath", C_qgreppath ),              \
-        ENTRY( "regex", C_re2_compile ),                \
-        ENTRY( "waitForKeypress", C_waitForKeypress ),  \
-        ENTRY( "walkdir", C_walkdir ),                  \
-        ENTRY( "walkdir_next", C_walkdir_next ),        \
+        ENTRY( "createSearchContext", C_createSearchContext),       \
+        ENTRY( "searchInLooseFile", C_searchInLooseFile),       \
+        ENTRY( "destroySearchContext", C_destroySearchContext), \
+        ENTRY( "getcwd", C_getcwd),                             \
+        ENTRY( "execute_search", C_executeSearch),          \
+        ENTRY( "fileexists", C_fileexists ),                \
+        ENTRY( "fileinfo", C_fileinfo ),                    \
+        ENTRY( "getpluginpath", C_getpluginpath ),          \
+        ENTRY( "fastpathsearch", C_fastpathsearch ),        \
+        ENTRY( "isVerbose", C_isVerbose ),                  \
+        ENTRY( "lua_api_help", C_lua_api_help ),            \
+        ENTRY( "mkdir", C_mkdir ),                          \
+        ENTRY( "qgreppath", C_qgreppath ),                  \
+        ENTRY( "regex", C_re2_compile ),                    \
+        ENTRY( "waitForKeypress", C_waitForKeypress ),      \
+        ENTRY( "walkdir", C_walkdir ),                      \
+        ENTRY( "walkdir_next", C_walkdir_next ),            \
     { NULL, NULL }
 
 #define ENTRY(name, func) { name, func }
@@ -779,6 +832,22 @@ void lua_ProjectExistsOrDie(const char* projectName)
     ReportedDoCall(gLuaState, 1,0);
 }
 
+void lua_NoCacheSearch(const char* projectName, const char* options, const char* regex, const char* secondPhaseRegex)
+{
+    InitLua();
+    int argCount = 3;
+    lua_getfield(gLuaState, LUA_GLOBALSINDEX, "no_db_search");    
+    lua_pushstring(gLuaState, projectName);
+    if (options && options[0] != 0)
+    {
+        argCount++;
+        lua_pushstring(gLuaState, options);
+    }
+    lua_pushstring(gLuaState, regex);
+    lua_pushstring(gLuaState, secondPhaseRegex);
+    ReportedDoCall(gLuaState, argCount,0);
+}
+
 bool StrStartsWith(const char* str, const char* startsWith)
 {
     if (str == NULL || *str == 0)
@@ -870,6 +939,36 @@ static void grepFormatHit(void* context, const char* filename, unsigned int line
     putchar('\n');
 }
 
+static void trimmedPrint(const char* base, const char* filename, int lineNumber)
+{
+    // if the filename starts with base, trim that off
+    const char* b = base;
+    const char* f = filename;
+    while (b && *b && f && *f && *b == *f) { b++; f++; }
+    if (*f && *b == 0)
+        printf("%s:%d:", &f[1], lineNumber);
+    else
+        printf("%s:%d:", filename, lineNumber);
+}
+
+static void grepFormatHitTrimmed(void* context, const char* filename, unsigned int lineNumber, const char* lineStart, const char* lineEnd)
+{
+    char* basepath = (char*)context;
+    gHitCount++;
+    if (gReplaceSlashesTo)
+    {
+        std::string s(filename);
+        ReplaceChars(s, gReplaceSlashesFrom, gReplaceSlashesTo);
+        trimmedPrint(basepath, s.c_str(), lineNumber);
+    }
+    else
+    {
+        trimmedPrint(basepath, filename, lineNumber);
+    }
+    printLinePart(lineStart, lineEnd);
+    putchar('\n');
+}
+
 static void visualStudioHitFormat(void* context, const char* filename, unsigned int lineNumber, const char* lineStart, const char* lineEnd)
 {
     gHitCount++;
@@ -889,7 +988,7 @@ static void visualStudioHitFormat(void* context, const char* filename, unsigned 
     putchar('\n');
 }
 
-void ExecuteSimpleColouredSearch(const char* archiveName, const char* options, const char* regex, const char* secondPhaseRegex, const char* colour)
+void PopulateParamsForSimpleColouredSearch(GrepParams* params, bool* printSummary, const char* archiveName, const char* options, const char* regex, const char* secondPhaseRegex, const char* colour)
 {
     gHitCount = 0;
     bool caseSensitive = true;
@@ -897,7 +996,7 @@ void ExecuteSimpleColouredSearch(const char* archiveName, const char* options, c
     bool visualStudioHit = false;
     bool regexIsLiteral = false;
     bool ignoreTrigrams = false;
-    bool printSummary = false;
+    *printSummary = false;
     bool doNotUseColour = false;
     
     while (*options)
@@ -909,8 +1008,8 @@ void ExecuteSimpleColouredSearch(const char* archiveName, const char* options, c
         case 'l': regexIsLiteral = true; break;
         case 'i': caseSensitive = false; ignoreTrigrams = true; break;
         case 'f': searchFilenames = true; break;
-        case 'V': visualStudioHit = true; printSummary = true; break;
-        case 's': printSummary = true; break;
+        case 'V': visualStudioHit = true; *printSummary = true; break;
+        case 's': *printSummary = true; break;
         case '\\': gReplaceSlashesTo = '\\'; gReplaceSlashesFrom = '/'; break;
         case '/': gReplaceSlashesTo = '/';   gReplaceSlashesFrom = '\\'; break;
         default:
@@ -919,32 +1018,37 @@ void ExecuteSimpleColouredSearch(const char* archiveName, const char* options, c
         options++;
     }
      
-    GrepParams params;
-    memset(&params, 0, sizeof(params));
-    params.sourceArchiveName = archiveName;
-    params.callbackFunction = grepFormatHit;
+    memset(params, 0, sizeof(GrepParams));
+    params->sourceArchiveName = archiveName;
+    params->callbackFunction = grepFormatHit;
     if (visualStudioHit)
     {
-        params.callbackFunction = visualStudioHitFormat;
+        params->callbackFunction = visualStudioHitFormat;
     }
-    params.searchPattern = regex;
-    params.streamBlockSize = 1 * 1024 * 1024;
-    params.streamBlockCount = 10;
-    params.caseSensitive = caseSensitive;
-    params.searchFilenames = searchFilenames;
-    params.regexIsLiteral = regexIsLiteral;
-    params.ignoreTrigrams = ignoreTrigrams;
-    params.callbackContext = (void*)searchFilenames;
-    params.secondPhasePattern = secondPhaseRegex;
+    params->searchPattern = regex;
+    params->streamBlockSize = 1 * 1024 * 1024;
+    params->streamBlockCount = 10;
+    params->caseSensitive = caseSensitive;
+    params->searchFilenames = searchFilenames;
+    params->regexIsLiteral = regexIsLiteral;
+    params->ignoreTrigrams = ignoreTrigrams;
+    params->callbackContext = 0;
+    params->secondPhasePattern = secondPhaseRegex;
     
     if (doNotUseColour == false)
     {
         re2::RE2::Options colour_options;
-        colour_options.set_case_sensitive(params.caseSensitive);
-        colour_options.set_literal(params.regexIsLiteral);
+        colour_options.set_case_sensitive(params->caseSensitive);
+        colour_options.set_literal(params->regexIsLiteral);
         SetGlobalMatchColour(regex, colour_options, colour);
     }
+}
     
+void ExecuteSimpleColouredSearch(const char* archiveName, const char* options, const char* regex, const char* secondPhaseRegex, const char* colour)    
+{
+    GrepParams params;
+    bool printSummary;
+    PopulateParamsForSimpleColouredSearch(&params, &printSummary, archiveName, options, regex, secondPhaseRegex, colour);    
     ExecuteSearch(&params);
     
     if (printSummary)
@@ -1008,9 +1112,9 @@ void FastPathSearch(int argc, const char** argv)
         }
         else
         {
-            lua_ProjectExistsOrDie(project);
-            printf("Project is registered, but archive does not exist.\n");
-            printf("Run 'qgrep build %s' to generate archive\n", project);
+            lua_NoCacheSearch(project, options, regex, secondPhaseRegex);
+            fprintf(stderr, "Project is registered, but archive does not exist.\n");
+            fprintf(stderr, "Run 'qgrep build %s' to generate archive\n", project);
         }
     }
 }
