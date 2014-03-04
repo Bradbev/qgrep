@@ -1,6 +1,6 @@
 BASE = ../../packages
 
-INCLUDES = -I../simplefilewatcher/include/ -I$(BASE)/re2_win32
+INCLUDES = -I../simplefilewatcher/include/ -I$(BASE)/re2_linux
 LIBDIR = $(BASE)/libs_osx
 LIBS = -larchive -llua5.1 -L$(BASE)/re2_win32/obj/libre2.a -lbz2 -lz
 
