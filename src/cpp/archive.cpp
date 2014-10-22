@@ -116,7 +116,7 @@ void MatchInBlock(RegexMatchState* state, NamedDataBlock* block)
     if (state->skipBinary)
     {
         // look for a NULL char, if we find it, assume this is binary & skip
-        void* n = memchr(data, 0, dataSize);
+        const void* n = memchr(data, 0, dataSize);
         if (n) scanBlock = false;
     }
     // Test the whole block for a match, fast rejection
@@ -535,9 +535,9 @@ void DestroySearchContext(LooseFileSearchContext* lfsc)
     //printf("Waiting on join\n");
     join(lfsc->consumer);
   
+    DestroyStream(context->dataStream);
     delete context->pattern;
     delete context;
-    DestroyStream(context->dataStream);
 }
 
 
