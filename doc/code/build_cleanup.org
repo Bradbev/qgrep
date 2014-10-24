@@ -1,1 +1,7 @@
 * Branch build_cleanup
+Qgrep is not easy to build after downloading it.  This branch aims to make building
+from source much easier.
+
+- Fix versions of required packages 
+- Add script/makefile that downloads libarchive & re2  
+- Minimize system dependancies (pthread, etc)
