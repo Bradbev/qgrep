@@ -5,3 +5,6 @@ data/
 src/cpp/igrep
 test/cpptest
 *.pyc
+packages/re2
+packages/libarchive-3.1.2
+packages/lua-5.1.5
