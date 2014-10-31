@@ -1,29 +1,25 @@
 BASE = ../../packages
 
-ARCHIVE = $(BASE)/libarchive-2.8.4
-INCLUDES = -I$(ARCHIVE)/libarchive/ -I../simplefilewatcher/include/
+ARCHIVE = $(BASE)/libarchive-3.1.2
+LUA = $(BASE)/lua-5.1.5/src
+RE2 = $(BASE)/re2
+INCLUDES = -I$(ARCHIVE)/libarchive/ -I$(RE2)/ -I$(LUA)/
 LIBDIR = $(BASE)/libs_osx
-LIBS = $(LIBDIR)/libarchive.a $(LIBDIR)/liblua.a $(LIBDIR)/libre2.a -lbz2 -lz
+LIBS = $(ARCHIVE)/.libs/libarchive.a $(LUA)/liblua.a $(RE2)/obj/libre2.a -lz
 
 IGREP_SRCS = archive.cpp stream.cpp trigram.cpp
 IGREP_OBJS = $(IGREP_SRCS:.cpp=.o) yarn.o
 
-CFLAGS += -O3 -g -Wall -Werror -fPIC $(INCLUDES) $(DIST_OPTS) -mmacosx-version-min=10.5
+CFLAGS += -O3 -g -Wall $(INCLUDES) $(DIST_OPTS) 
 CPPFLAGS = $(CFLAGS)
 
-all: libigrep.dylib igrepll igreplua libqgrep.a
+all: igreplua libqgrep.a
 
 igreplua: $(IGREP_OBJS) *.h igreplua.o
-	g++ -o igreplua igreplua.o $(IGREP_OBJS) $(CFLAGS) $(LIBS)
+	c++ -o igreplua igreplua.o $(IGREP_OBJS) $(CFLAGS) $(LIBS)
 
-libigrep.dylib: $(IGREP_OBJS) *.h
-	g++ -dynamiclib -o libigrep.dylib $(IGREP_OBJS) $(LIBS)
-	
 libqgrep.a: $(IGREP_OBJS)
 	ar rcs libqgrep.a $(IGREP_OBJS)
-
-igrepll: libigrep.dylib igrep.o *.h
-	g++ -o igrepll igrep.o libigrep.dylib $(CFLAGS)
 
 clean:
 	rm -f *.o *.dylib *.a igrepll igreplua igreplua.bin.h

@@ -904,7 +904,10 @@ static void printLinePart(const char* lineStart, const char* lineEnd)
     if (gColourPattern)
     {
         std::string colouredLine;
-        re2::RE2::Extract(re2::StringPiece(lineStart, lineEnd - lineStart), *gColourPattern, gColourReplacement, &colouredLine);
+        re2::RE2::Extract(re2::StringPiece(lineStart, lineEnd - lineStart), 
+                          *gColourPattern, 
+                          gColourReplacement, 
+                          &colouredLine);
         fwrite(colouredLine.c_str(), 1, colouredLine.size(), stdout); 
     }
     else

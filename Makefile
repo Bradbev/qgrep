@@ -83,3 +83,7 @@ dist_clean:
 
 .PHONY: dist_clean
 
+package_clean:
+	rm -rf ./packages/*
+
+.PHONY: package_clean
