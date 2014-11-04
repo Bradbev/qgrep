@@ -1,46 +1,46 @@
 BASE = ../../packages
 
-ARCHIVE = $(BASE)/libarchive_win32
-INCLUDES = -I $(ARCHIVE)/include/ -I $(BASE)/re2_win32/ -I $(BASE)/lua-5.1.4/src
-LIBDIR = $(BASE)/libs_win32
-LIBS = $(LIBDIR)/libarchive.dll.a $(LIBDIR)/libre2.so $(LIBDIR)/pthreadGC2.dll $(LIBDIR)/liblua.a
+ARCHIVE = $(BASE)/libarchive-3.1.2
+LUA = $(BASE)/lua-5.1.5/src
+RE2 = $(BASE)/re2
+INCLUDES = -I$(ARCHIVE)/libarchive/ -I$(RE2)/ -I$(LUA)/
+LIBDIR = $(BASE)/libs_osx
+LIBS = $(ARCHIVE)/.libs/libarchive.a $(LUA)/liblua.a $(RE2)/obj/libre2.a -lz -lpthread
 
 IGREP_SRCS = archive.cpp stream.cpp trigram.cpp
 IGREP_OBJS = $(IGREP_SRCS:.cpp=.o) yarn.o
 
-CFLAGS = -O3 -g -Wall $(INCLUDES) $(DIST_OPTS) 
-CPPFLAGS = $(CFLAGS) 
-CC = gcc
+CFLAGS += -O3 -g -Wall -Wno-narrowing $(INCLUDES) $(DIST_OPTS) 
+CPPFLAGS = $(CFLAGS)
 
-all: libigrep.dll igrepll igreplua
+all: igreplua libqgrep.a
 
 igreplua: $(IGREP_OBJS) *.h igreplua.o
-	g++ -o igreplua igreplua.o $(IGREP_OBJS) $(CFLAGS) $(LIBS)
+	c++ -o igreplua igreplua.o $(IGREP_OBJS) $(CFLAGS) $(LIBS)
 
-libigrep.dll: $(IGREP_OBJS) *.h
-	g++ -shared -o libigrep.dll $(IGREP_OBJS) $(LIBS)
-
-igrepll: igrep.o *.h $(IGREP_OBJS)
-	g++ -o igrepll igrep.o $(IGREP_OBJS) $(CFLAGS) $(LIBS)
-
-#libigrep.dll $(CFLAGS)
+libqgrep.a: $(IGREP_OBJS)
+	ar rcs libqgrep.a $(IGREP_OBJS)
 
 clean:
-	rm -f *.o *.exe *.dll
+	rm -f *.o *.dylib *.a igrepll igreplua igreplua.bin.h
+	find . -iname "*.gcov" | xargs rm -f
+	find . -iname "*.gcda" | xargs rm -f
+	find . -iname "*.gcno" | xargs rm -f
 
 .PHONY: clean
 
 igreplua.bin.h: igrep.lua
-	$(BASE)/lua-5.1.4/src/luac.exe igrep.lua
+	$(LUA)/luac igrep.lua
 	echo "const char lua_binary_data[] = {" > igreplua.bin.h
 	od -txC -v luac.out | sed -e "s/^[0-9]*//" -e s"/ \([0-9a-f][0-9a-f]\)/0x\1,/g" -e"\$$d" >> igreplua.bin.h
 	echo "};" >> igreplua.bin.h
 	rm -f luac.out
 .PHONY: lua_bin
 
-dist: clean
+dist: clean 
 	make igreplua.bin.h 
 	DIST_OPTS=-DEMBED_BINARY make all
-	cp igreplua.exe $(DIST_DIR)/qgrep.exe
+	cp igreplua $(DIST_DIR)/qgrep
 	
+
 .PHONY: dist

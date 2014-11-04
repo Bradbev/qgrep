@@ -22,7 +22,7 @@ upload: docs
 ####################################################
 
 ######################## Win32/MINGW specific
-ifeq ($(shell uname -s), MINGW32_NT-6.1)
+ifeq ($(shell uname -o), Msys)
 PLATFORM = win32
 
 docs:
@@ -30,8 +30,6 @@ docs:
 .PHONY: docs
 
 lib_copy:
-	cp packages/libs_$(PLATFORM)/*.dll $(DIST_DIR)
-	cp packages/libs_$(PLATFORM)/*.so.0 $(DIST_DIR)
 	strip $(DIST_DIR)/*
 .PHONY: lib_copy
 
@@ -84,6 +82,8 @@ dist_clean:
 .PHONY: dist_clean
 
 package_clean:
-	rm -rf ./packages/*
+	rm -rf ./packages/re2
+	rm -rf ./packages/lua-5.1.5
+	rm -rf ./packages/libarchive-3.1.2
 
 .PHONY: package_clean
