@@ -493,7 +493,11 @@ const char* C_isVerbose_help = "returns true if Qgrep is logging extra output";
 int C_mkdir(lua_State* L)
 {
     const char* dirname = luaL_checkstring(L,1);
+#ifdef WIN32
+    int ret = _mkdir(dirname);
+#else
     int ret = mkdir(dirname, 0777);
+#endif
     lua_pushinteger(L, ret);
     return 1;
 }

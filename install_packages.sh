@@ -1,8 +1,12 @@
+# Need -lpthread & -lz as part of the system
 cd packages
 
 hg clone https://re2.googlecode.com/hg re2
 cd re2
-make test
+if [ $OSTYPE == "msys" ]; then
+patch -p 1 -i ../reqired_patches/re2.patch
+fi	
+make obj/libre2.a
 cd ..
 
 curl -R -O http://www.libarchive.org/downloads/libarchive-3.1.2.tar.gz
@@ -18,7 +22,8 @@ curl -R -O http://www.lua.org/ftp/lua-5.1.5.tar.gz
 tar zxf lua-5.1.5.tar.gz
 rm lua-5.1.5.tar.gz
 cd lua-5.1.5
-make macosx test
+make generic test
 cd ..
 
 cd ..
+

@@ -30,7 +30,7 @@ clean:
 .PHONY: clean
 
 igreplua.bin.h: igrep.lua
-	luac igrep.lua
+	$(LUA)/luac igrep.lua
 	echo "const char lua_binary_data[] = {" > igreplua.bin.h
 	od -txC -v luac.out | sed -e "s/^[0-9]*//" -e s"/ \([0-9a-f][0-9a-f]\)/0x\1,/g" -e"\$$d" >> igreplua.bin.h
 	echo "};" >> igreplua.bin.h
