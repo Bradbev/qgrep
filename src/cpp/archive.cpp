@@ -117,7 +117,7 @@ void MatchInBlock(RegexMatchState* state, NamedDataBlock* block)
     {
         // look for a NULL char, if we find it, assume this is binary & skip
 		// This appears to fail when it shouldn't :(
-        void* n = memchr(data, 0, dataSize);
+        const void* n = memchr(data, 0, dataSize);
         if (n) scanBlock = false;
     }
     // Test the whole block for a match, fast rejection
