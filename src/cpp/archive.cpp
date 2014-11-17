@@ -82,7 +82,7 @@ void InitMatchState(RegexMatchState* state, RE2* pattern, RE2* secondPhasePatter
     state->secondPhasePattern = secondPhasePattern;
     state->filename = NULL;
     state->currentLineCount = 0;
-    state->skipBinary = true;
+    state->skipBinary = false;
 }
 
 struct ConsumerThreadContext
@@ -116,6 +116,7 @@ void MatchInBlock(RegexMatchState* state, NamedDataBlock* block)
     if (state->skipBinary)
     {
         // look for a NULL char, if we find it, assume this is binary & skip
+		// This appears to fail when it shouldn't :(
         void* n = memchr(data, 0, dataSize);
         if (n) scanBlock = false;
     }
@@ -535,9 +536,9 @@ void DestroySearchContext(LooseFileSearchContext* lfsc)
     //printf("Waiting on join\n");
     join(lfsc->consumer);
   
+    DestroyStream(context->dataStream);
     delete context->pattern;
     delete context;
-    DestroyStream(context->dataStream);
 }
 
 
