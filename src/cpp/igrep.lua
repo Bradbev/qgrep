@@ -448,6 +448,13 @@ function build(projectName, options)
    print("Done building")
 end
 
+function build_all()
+   print("Buliding all projects")
+   for k,v in pairs(gProjects) do
+      build(k)
+   end
+end
+
 function listprojects()
    print("Known projects")
    for k,v in pairs(gProjects) do
@@ -541,7 +548,7 @@ end
 
 function no_db_search(projectName, options, regex, secondPhaseRegex)
    local project = GetProjectOrDie(projectName)
-   --print("no_db_search", projectName, options, regex, secondPhaseRegex)
+   print("no_db_search", projectName, options, regex, secondPhaseRegex)
    local context = c.createSearchContext(gPath, options, regex, secondPhaseRegex)
    for f in IterateProjectFiles(project) do
       c.searchInLooseFile(context, f)
@@ -623,6 +630,7 @@ defHelp(build, "the T option disables trigraph indexing during the build")
 
 defCommand(help,         "help",          "Provides further help for commands")
 defCommand(build,        "build",         "<project> [T] regenerates the database for <project>")
+defCommand(build_all,    "build-all",     "Builds all projects")
 defCommand(listprojects, "projects",      "Lists all known projects")
 defCommand(search_help_only,   "search",  "<project> [-filsTV/\\] <regex> [secondPhaseRegex] searches for <regex> in the given project.")
 defCommand(scanstalefiles, "scan-stale",  "<project> scans for stale files in the project.  Does not rebuild project")

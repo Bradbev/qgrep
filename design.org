@@ -1,3 +1,12 @@
+Brad@Brad-PC /c/development/qgrep/src/cpp
+$ ./igreplua search geobase -T distance_pt_pt
+>>>>> No results!
+
+Brad@Brad-PC /c/development/qgrep/src/cpp
+$ ./igreplua search geobase distance_pt_pt
+>>>>> Results
+
+
 Qgrep cleanup
 - detect colours to tty or file
 - get a test framework setup

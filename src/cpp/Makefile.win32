@@ -10,16 +10,13 @@ LIBS = $(ARCHIVE)/.libs/libarchive.a $(LUA)/liblua.a $(RE2)/obj/libre2.a -lz -lp
 IGREP_SRCS = archive.cpp stream.cpp trigram.cpp
 IGREP_OBJS = $(IGREP_SRCS:.cpp=.o) yarn.o
 
-CFLAGS += -O3 -g -Wall -Wno-narrowing $(INCLUDES) $(DIST_OPTS) 
+CFLAGS += -DPTW32_STATIC_LIB -O3 -g -Wall -Wno-narrowing $(INCLUDES) $(DIST_OPTS)
 CPPFLAGS = $(CFLAGS)
 
-all: igreplua libqgrep.a
+all: igreplua 
 
 igreplua: $(IGREP_OBJS) *.h igreplua.o
-	c++ -o igreplua igreplua.o $(IGREP_OBJS) $(CFLAGS) $(LIBS)
-
-libqgrep.a: $(IGREP_OBJS)
-	ar rcs libqgrep.a $(IGREP_OBJS)
+	c++ -o igreplua igreplua.o $(IGREP_OBJS) $(CFLAGS) $(LIBS) -static
 
 clean:
 	rm -f *.o *.dylib *.a igrepll igreplua igreplua.bin.h

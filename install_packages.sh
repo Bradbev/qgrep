@@ -1,4 +1,8 @@
 # Need -lpthread & -lz as part of the system
+if [ $OSTYPE == "msys" ]; then
+	mingw-get install libz libpthread
+fi	
+
 cd packages
 
 hg clone https://re2.googlecode.com/hg re2
@@ -15,7 +19,6 @@ rm -f libarchive-3.1.2.tar.gz
 cd libarchive-3.1.2
 ./configure --without-bz2lib --without-lzmadec --without-iconv --without-lzma --without-lzo2 --without-nettle --without-openssl --without-xml2 --without-expat
 make 
-make check
 cd ..
 
 curl -R -O http://www.lua.org/ftp/lua-5.1.5.tar.gz
