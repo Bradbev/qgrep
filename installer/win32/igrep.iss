@@ -3,7 +3,7 @@
 [Setup]
 ChangesEnvironment=true
 AppName=Quick Grep
-AppVersion=2.0.13
+AppVersion=2.0.15
 DefaultDirName={pf}\qgrep
 DefaultGroupName=qgrep
 ; UninstallDisplayIcon={app}\MyProg.exe
