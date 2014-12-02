@@ -1067,7 +1067,6 @@ void ExecuteSimpleColouredSearch(const char* archiveName, const char* options, c
 void FastPathSearch(int argc, const char** argv)
 {
     char projectNames[1024];
-    strcpy(projectNames, argv[2]);
     const char* options = "";
     const char* regex = "";
     const char* secondPhaseRegex = NULL;
@@ -1099,6 +1098,7 @@ void FastPathSearch(int argc, const char** argv)
         usage();
     }
     
+    strcpy(projectNames, argv[2]);
     char* projects[20];
     int projectCount = 0;
     for (char* project = strtok(projectNames, ",");
