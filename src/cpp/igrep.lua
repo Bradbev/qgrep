@@ -689,3 +689,90 @@ for i, plugin in pairs(filteredWalkDir(c.qgreppath() .. "/plugins", lua_files_re
    dofile(plugin)
 end
 
+-- pull longest dir(s) up by 1 level, remove duplicates
+function path_parent(path)
+   local p = path
+   if path:sub(-1, -1) == "/" then
+      p = path:sub(1,-2)
+   end
+   local m = p:match("(.*)/.*$")
+   if m and m:len() > 1 then
+      return m
+   end
+   return path
+end
+
+function common_base_length(s1, s2)
+   local l = math.min(s1:len(), s2:len())
+   for i = 1,l do
+      if s1:sub(i, i) ~= s2:sub(i,i) then
+         return i - 1
+      end
+   end
+   return l
+end
+
+--[[
+projects will often have a single common root
+brad/development/project/foo/bar
+brad/development/project/foo/zot
+brad/development/project/foo/
+   
+- want to collapse all paths that would be covered anyway
+- sort, remove all entries that fully match shortest path
+
+
+--]]
+
+function reduce_path_set(paths, target_size) 
+   target_size = target_size or 0
+   local lowered = map(string.lower, paths)
+   function prune_longest()
+      table.sort(lowered)
+      local max = 0
+      local max_index = 0
+      for i = 1,#lowered - 1 do
+         local l = common_base_length(lowered[i], lowered[i+1])
+         if l > max then
+            max = l
+            max_index = i
+         end
+      end
+      if max_index > 0 then
+         lowered[max_index] = lowered[max_index]:sub(1, max)
+         table.remove(lowered, max_index + 1)
+      end
+   end
+   local old_size = 0
+   while (#lowered > target_size and #lowered ~= old_size) do
+      tprint(lowered)
+      old_size = #lowered
+      prune_longest()
+      print("----")
+   end
+end
+
+local p = GetProjectOrDie("zombie")
+local paths = {}
+for k,v in pairs(p.tracked) do
+   table.insert(paths, v.path)
+end
+
+reduce_path_set(paths)
+
+
+--[[
+c.filewatcher_add("/Users/bradbeveridge/tmp", 
+function(path) 
+   print("From lua", path)
+end)
+
+t = os.time()
+while (os.difftime(os.time() - t) < 5) do end
+print("not listening!")
+c.filewatcher_removeall()
+t = os.time()
+while (os.difftime(os.time() - t) < 5) do end
+--]]
+
+os.exit()

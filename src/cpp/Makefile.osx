@@ -3,9 +3,10 @@ BASE = ../../packages
 ARCHIVE = $(BASE)/libarchive-3.1.2
 LUA = $(BASE)/lua-5.1.5/src
 RE2 = $(BASE)/re2
-INCLUDES = -I$(ARCHIVE)/libarchive/ -I$(RE2)/ -I$(LUA)/
+EFSW = $(BASE)/efsw
+INCLUDES = -I$(ARCHIVE)/libarchive/ -I$(RE2)/ -I$(LUA)/ -I$(EFSW)/include
 LIBDIR = $(BASE)/libs_osx
-LIBS = $(ARCHIVE)/.libs/libarchive.a $(LUA)/liblua.a $(RE2)/obj/libre2.a -lz
+LIBS = $(ARCHIVE)/.libs/libarchive.a $(LUA)/liblua.a $(RE2)/obj/libre2.a $(EFSW)/lib/libefsw-static-debug.a -lpthread -framework CoreFoundation -framework CoreServices -lz
 
 IGREP_SRCS = archive.cpp stream.cpp trigram.cpp
 IGREP_OBJS = $(IGREP_SRCS:.cpp=.o) yarn.o

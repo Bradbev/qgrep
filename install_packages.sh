@@ -28,5 +28,11 @@ cd lua-5.1.5
 make generic test
 cd ..
 
+hg clone https://bitbucket.org/SpartanJ/efsw efsw
+cd efsw
+premake4 gmake
+cd make/macosx/
+cd ../../../
+
 cd ..
 

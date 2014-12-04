@@ -22,6 +22,7 @@ extern "C" {
 #include <string>
 #include "re2/re2.h"
 #include "trigram.h"
+#include "efsw/efsw.hpp"
 
 // Forward declares
 void lua_ProjectExistsOrDie(const char* projectName);
@@ -549,6 +550,7 @@ int C_executeSearch(lua_State* L)
         lua_getfield(L, arg_table, "caseSensitive");  /* idx:4 */
         lua_getfield(L, arg_table, "regexIsLiteral"); /* idx:5 */
         lua_getfield(L, arg_table, "ignoreTrigrams"); /* idx:6 */
+        
         // MUST leave the callback on the top of the stack
         lua_getfield(L, arg_table, "callback");       /* idx:7 */
         test_error(lua_isfunction(L, -1), "execute_search needs a key of 'callback' which must be a lua function");
@@ -658,6 +660,98 @@ int C_destroySearchContext(lua_State* L)
 }
 const char* C_destroySearchContext_help = "";
 
+/// Processes a file action
+class UpdateListener : public efsw::FileWatchListener
+{
+public:
+    UpdateListener() {}
+
+    std::string getActionName( efsw::Action action )
+    {
+        switch ( action )
+        {
+        case efsw::Actions::Add:		return "Add";
+        case efsw::Actions::Modified:	return "Modified";
+        case efsw::Actions::Delete:		return "Delete";
+        case efsw::Actions::Moved:		return "Moved";
+        default:						return "Bad Action";
+        }
+    }
+
+    void handleFileAction( efsw::WatchID watchid, const std::string& dir, const std::string& filename, efsw::Action action, std::string oldFilename = ""  )
+    {
+        printf("something happened on %s\n", filename.c_str());
+        //			std::cout << "DIR (" << dir + ") FILE (" + ( oldFilename.empty() ? "" : "from file " + oldFilename + " to " ) + filename + ") has event " << getActionName( action ) << std::endl;
+        lua_pushinteger(gLuaState, watchid);
+        lua_gettable(gLuaState, LUA_REGISTRYINDEX);
+        lua_pushstring(gLuaState, filename.c_str());
+        ReportedDoCall(gLuaState, 1, 0);
+    }
+};
+
+static efsw::FileWatcher* gFileWatcher = NULL;
+static UpdateListener* gUpdateListener = NULL;
+typedef std::map<efsw::WatchID, int> WatchMap;
+static WatchMap gWatchIdToCallback;
+efsw::FileWatcher* GetFileWatcher() {
+    if (!gFileWatcher) {
+        gUpdateListener = new UpdateListener();
+        gFileWatcher = new efsw::FileWatcher();
+        gFileWatcher->followSymlinks( false );
+        gFileWatcher->allowOutOfScopeLinks( false );
+    }
+    return gFileWatcher;
+}
+
+void cleanup() {
+    if (gFileWatcher) {
+        delete gFileWatcher;
+    }
+}
+
+// (path:string, callback:function) -> number 
+int C_filewatcher_add(lua_State* L) {
+    const char* path = luaL_checkstring(L, 1);
+    test_error(lua_isfunction(L, 2), "second argument of filewatcher.add must be a lua function");
+    int callbackId = luaL_ref(L, LUA_REGISTRYINDEX);
+	efsw::FileWatcher* fileWatcher = GetFileWatcher();
+    efsw::WatchID watchId = fileWatcher->addWatch(path, gUpdateListener, true);
+    gWatchIdToCallback[watchId] = callbackId;
+    lua_pushinteger(L, watchId);
+    return 1;
+}
+const char* C_filewatcher_add_help = "";
+
+// (watchId:number) -> nil
+int C_filewatcher_remove(lua_State* L) {
+    int id = luaL_checkinteger(L, 1);
+	efsw::FileWatcher* fileWatcher = GetFileWatcher();
+    fileWatcher->removeWatch(id);
+    gWatchIdToCallback.erase(id);
+    return 0;
+}
+const char* C_filewatcher_remove_help = "";
+
+// () -> nil
+int C_filewatcher_removeall(lua_State* L) {
+	efsw::FileWatcher* fileWatcher = GetFileWatcher();
+    for (WatchMap::iterator i = gWatchIdToCallback.begin();
+         i != gWatchIdToCallback.end(); i++) {
+        fileWatcher->removeWatch(i->first);
+    }
+    gWatchIdToCallback.clear();
+    return 0;
+}
+const char* C_filewatcher_removeall_help = "";
+
+/*
+  id = watcher.add("~/tmp", function(path) print(path) end)
+  watcher.remove(id)
+  watcher.remove("~/tmp")
+  watcher.removeall()
+ */
+
+
 struct FunctionHelp
 {
     const char* name;
@@ -685,6 +779,9 @@ const char* C_lua_api_help_help = "This help";
         ENTRY( "waitForKeypress", C_waitForKeypress ),      \
         ENTRY( "walkdir", C_walkdir ),                      \
         ENTRY( "walkdir_next", C_walkdir_next ),            \
+        ENTRY( "filewatcher_add", C_filewatcher_add),       \
+        ENTRY( "filewatcher_remove", C_filewatcher_remove), \
+        ENTRY( "filewatcher_removeall", C_filewatcher_removeall), \
     { NULL, NULL }
 
 #define ENTRY(name, func) { name, func }
@@ -1128,6 +1225,8 @@ void FastPathSearch(int argc, const char** argv)
 
 int main(int argc, const char** argv)
 {
+    atexit(cleanup);
+    
     if (argc > 1)
     {
         if (strcmp("v", argv[1]) == 0)
