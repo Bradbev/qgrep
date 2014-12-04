@@ -1,0 +1,36 @@
+diff -r 1b483548272e util/logging.h
+--- a/util/logging.h	Mon Oct 06 15:08:47 2014 -0400
++++ b/util/logging.h	Tue Nov 04 13:53:46 2014 +1300
+@@ -44,7 +44,7 @@
+ #define LOG_DFATAL LOG_FATAL
+ #endif
+ 
+-#define LOG(severity) LOG_ ## severity.stream()
++#define LOG(severity) LOG_##severity .stream()
+ 
+ class LogMessage {
+  public:
+diff -r 1b483548272e util/pcre.cc
+--- a/util/pcre.cc	Mon Oct 06 15:08:47 2014 -0400
++++ b/util/pcre.cc	Tue Nov 04 13:53:46 2014 +1300
+@@ -11,7 +11,7 @@
+ #include "util/flags.h"
+ #include "util/pcre.h"
+ 
+-#define PCREPORT(level) LOG(level)
++#define PCREPORT(level) LOG_##level .stream()
+ 
+ // Default PCRE limits.
+ // Defaults chosen to allow a plausible amount of CPU and
+diff -r 1b483548272e util/thread.cc
+--- a/util/thread.cc	Mon Oct 06 15:08:47 2014 -0400
++++ b/util/thread.cc	Tue Nov 04 13:53:46 2014 +1300
+@@ -8,7 +8,7 @@
+ #include "util/thread.h"
+ 
+ Thread::Thread() {
+-  pid_ = 0;
++	//pid_ = 0;
+   running_ = 0;
+   joinable_ = 0;
+ }
